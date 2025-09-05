@@ -3,6 +3,7 @@ import com.varabyte.kobweb.gradle.application.util.configAsKobwebApplication
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kobweb.application)
     alias(libs.plugins.kobwebx.markdown)
 }
@@ -32,6 +33,7 @@ kotlin {
             implementation(libs.kobweb.silk)
             implementation(libs.silk.icons.fa)
             implementation(libs.kobwebx.markdown)
+            implementation(libs.serialization.json)
             
         }
         jvmMain.dependencies {
