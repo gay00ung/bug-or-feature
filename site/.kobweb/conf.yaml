@@ -1,0 +1,14 @@
+site:
+  title: "Bug Or Feature"
+
+server:
+  files:
+    dev:
+      contentRoot: "build/processedResources/js/main/public"
+      script: "build/kotlin-webpack/js/developmentExecutable/bug_or_feature.js"
+      api: "build/libs/bug_or_feature.jar"
+    prod:
+      script: "build/kotlin-webpack/js/productionExecutable/bug_or_feature.js"
+      siteRoot: ".kobweb/site"
+
+  port: 8080
