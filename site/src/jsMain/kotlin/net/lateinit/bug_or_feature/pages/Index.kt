@@ -152,7 +152,7 @@ fun Index() {
                 Column(Modifier.gap(24.px)) {
                     SectionCard {
                         H3 { Text("찾기") }
-                        Row(Modifier.gap(8.px).margin(top = 8.px)) {
+                        Row(Modifier.gap(8.px).margin(top = 8.px, bottom = 8.px)) {
                             Select(attrs = {
                                 classes("input")
                                 onChange { category = it.value ?: "all" }
