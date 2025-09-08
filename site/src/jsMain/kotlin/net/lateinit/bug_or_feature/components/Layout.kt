@@ -1,22 +1,27 @@
 package net.lateinit.bug_or_feature.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.varabyte.kobweb.compose.foundation.layout.Row
 import com.varabyte.kobweb.compose.ui.Modifier
 import com.varabyte.kobweb.compose.ui.modifiers.alignItems
+import com.varabyte.kobweb.compose.ui.modifiers.classNames
 import com.varabyte.kobweb.compose.ui.modifiers.gap
 import com.varabyte.kobweb.compose.ui.modifiers.justifyContent
 import com.varabyte.kobweb.compose.ui.modifiers.padding
 import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.text.SpanText
+import kotlinx.browser.document
+import kotlinx.browser.window
 import org.jetbrains.compose.web.css.AlignItems
-import org.jetbrains.compose.web.css.Color
 import org.jetbrains.compose.web.css.DisplayStyle
 import org.jetbrains.compose.web.css.JustifyContent
 import org.jetbrains.compose.web.css.alignItems
-import org.jetbrains.compose.web.css.backgroundColor
 import org.jetbrains.compose.web.css.borderRadius
-import org.jetbrains.compose.web.css.color
 import org.jetbrains.compose.web.css.display
 import org.jetbrains.compose.web.css.fontSize
 import org.jetbrains.compose.web.css.gap
@@ -36,8 +41,8 @@ fun Container(content: @Composable () -> Unit) {
     Div({
         style {
             property("min-height", "100vh")
-            property("background", "linear-gradient(180deg, #fafafa, #f1f1f1)")
-            property("color", "#141414")
+            property("background", "var(--bg)")
+            property("color", "var(--fg)")
             property("-webkit-font-smoothing", "antialiased")
             property("-moz-osx-font-smoothing", "grayscale")
         }
@@ -47,10 +52,7 @@ fun Container(content: @Composable () -> Unit) {
                 maxWidth(1100.px)
                 property("margin-left", "auto")
                 property("margin-right", "auto")
-                padding(
-                    0.px,
-                    16.px
-                )
+                padding(0.px, 16.px)
             }
         }) { content() }
     }
@@ -58,26 +60,61 @@ fun Container(content: @Composable () -> Unit) {
 
 @Composable
 fun Header(onShare: () -> Unit, onReset: () -> Unit) {
-    Row(
-        Modifier.padding(24.px, 0.px).alignItems(AlignItems.Center)
-            .justifyContent(JustifyContent.SpaceBetween)
-    ) {
-        Div({ style { display(DisplayStyle.Flex); alignItems(AlignItems.Center); gap(12.px) } }) {
-            Div({
-                style {
-                    width(36.px); height(36.px); borderRadius(12.px); backgroundColor(Color.black); color(
-                    Color.white
-                ); display(DisplayStyle.Grid); property("place-items", "center")
-                }
-            }) { Text("⚖️") }
-            Div {
-                H1({ style { fontSize(22.px); margin(0.px) } }) { Text("개발자 지옥 밸런스게임") }
-                P({ style { margin(0.px); fontSize(12.px); color(Color.gray) } }) { Text("심심할 땐 선택하고, 더 심심하면 질문 추가하기") }
+    Div({ classes("header") }) {
+        var theme by remember { mutableStateOf<String?>(null) }
+        fun applyTheme(t: String?) {
+            if (t == null) {
+                window.localStorage.removeItem("theme")
+                document.documentElement?.removeAttribute("data-theme")
+            } else {
+                window.localStorage.setItem("theme", t)
+                document.documentElement?.setAttribute("data-theme", t)
             }
         }
+        LaunchedEffect(Unit) {
+            val saved = window.localStorage.getItem("theme")
+            theme = saved
+            applyTheme(saved)
+        }
+        fun toggleTheme() {
+            val next = when (theme) {
+                "dark" -> "light"
+                "light" -> null
+                else -> "dark"
+            }
+            theme = next
+            applyTheme(next)
+        }
+        Row(
+            Modifier.padding(18.px, 0.px).alignItems(AlignItems.Center)
+                .justifyContent(JustifyContent.SpaceBetween)
+        ) {
+            Div({ style { display(DisplayStyle.Flex); alignItems(AlignItems.Center); gap(12.px) } }) {
+                Div({
+                    style {
+                        width(36.px); height(36.px); borderRadius(12.px); display(DisplayStyle.Grid); property(
+                        "place-items",
+                        "center"
+                    )
+                    }; classes("logo")
+                }) { Text("⚖️") }
+                Div {
+                    H1({ style { fontSize(22.px); margin(0.px) } }) { Text("개발자 지옥 밸런스게임") }
+                P({ style { margin(0.px); fontSize(12.px); property("color","var(--muted)") } }) { Text("심심할 땐 선택하고, 더 심심하면 질문 추가하기") }
+                }
+            }
         Row(Modifier.gap(8.px)) {
-            Button(onClick = { onShare() }) { SpanText("현재 질문 공유") }
-            Button(onClick = { onReset() }) { SpanText("랜덤/최신 보기") }
+            Button(onClick = { onShare() }, modifier = Modifier.classNames("btn", "btn-primary")) { SpanText("현재 질문 공유") }
+            Button(onClick = { onReset() }, modifier = Modifier.classNames("btn", "btn-ghost")) { SpanText("랜덤/최신 보기") }
+            Button(onClick = { toggleTheme() }, modifier = Modifier.classNames("btn", "btn-ghost")) {
+                val label = when (theme) {
+                    "dark" -> "☀️ 라이트"
+                    "light" -> "🖥 자동"
+                    else -> "🌙 다크"
+                }
+                SpanText(label)
+            }
+        }
         }
     }
 }
@@ -89,16 +126,7 @@ fun MainGrid(content: @Composable () -> Unit) {
 
 @Composable
 fun SectionCard(content: @Composable () -> Unit) {
-    Div({
-        style {
-            property("border", "1px solid #e4e4e4")
-            borderRadius(18.px)
-            padding(20.px)
-            property("background", "rgba(255, 255, 255, 0.7)")
-            property("backdrop-filter", "blur(6px)")
-            property("box-shadow", "0 2px 8px rgba(0,0,0,0.05)")
-        }
-    }) { content() }
+    Div({ classes("card"); style { padding(20.px) } }) { content() }
 }
 
 @Composable

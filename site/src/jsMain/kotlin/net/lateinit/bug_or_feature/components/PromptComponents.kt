@@ -9,14 +9,12 @@ import com.varabyte.kobweb.compose.foundation.layout.Column
 import com.varabyte.kobweb.compose.foundation.layout.Row
 import com.varabyte.kobweb.compose.ui.Modifier
 import com.varabyte.kobweb.compose.ui.modifiers.alignItems
-import com.varabyte.kobweb.compose.ui.modifiers.border
-import com.varabyte.kobweb.compose.ui.modifiers.borderRadius
+import com.varabyte.kobweb.compose.ui.modifiers.classNames
 import com.varabyte.kobweb.compose.ui.modifiers.color
 import com.varabyte.kobweb.compose.ui.modifiers.fontSize
 import com.varabyte.kobweb.compose.ui.modifiers.gap
 import com.varabyte.kobweb.compose.ui.modifiers.justifyContent
 import com.varabyte.kobweb.compose.ui.modifiers.margin
-import com.varabyte.kobweb.compose.ui.modifiers.padding
 import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.text.SpanText
 import net.lateinit.bug_or_feature.model.Prompt
@@ -27,8 +25,6 @@ import org.jetbrains.compose.web.css.AlignItems
 import org.jetbrains.compose.web.css.Color
 import org.jetbrains.compose.web.css.DisplayStyle
 import org.jetbrains.compose.web.css.JustifyContent
-import org.jetbrains.compose.web.css.LineStyle
-import org.jetbrains.compose.web.css.backgroundColor
 import org.jetbrains.compose.web.css.borderRadius
 import org.jetbrains.compose.web.css.color
 import org.jetbrains.compose.web.css.display
@@ -67,11 +63,7 @@ fun PromptHeader(p: Prompt) {
 
 @Composable
 fun Pill(text: String) {
-    SpanText(
-        text,
-        Modifier.border(1.px, LineStyle.Solid, Color.gray).padding(4.px, 8.px).borderRadius(999.px)
-            .fontSize(12.px).color(Color.gray)
-    )
+    Div({ classes("pill") }) { SpanText(text) }
 }
 
 @Composable
@@ -86,24 +78,17 @@ fun OptionCard(
     val total = votes.a + votes.b
     val count = if (side == "a") votes.a else votes.b
     val ratio = if (total > 0) (count * 100) / total else 0
-    Button(onClick = { onClick() }) {
+    Div({
+        classes("option-card"); if (selected) classes("is-selected"); onClick { onClick() }
+    }) {
         Div({ style { textAlign("left"); width(100.percent) } }) {
             Row(Modifier.gap(8.px).margin(bottom = 4.px).alignItems(AlignItems.Center)) {
-                Div({
-                    style {
-                        width(24.px); height(24.px); borderRadius(999.px); backgroundColor(
-                        Color.black
-                    ); color(Color.white); display(DisplayStyle.Grid); property(
-                        "place-items",
-                        "center"
-                    ); fontSize(12.px); fontWeight("700")
-                    }
-                }) { Text(label) }
+                Div({ style { width(24.px); height(24.px); borderRadius(999.px); display(DisplayStyle.Grid); property("place-items","center"); fontSize(12.px); fontWeight("700"); property("background-color","var(--accent)"); color(Color.white) } }) { Text(label) }
                 if (total > 0) SpanText(
                     "${ratio}% (${count}표)",
                     Modifier.fontSize(12.px).color(Color.gray)
                 )
-                if (selected) SpanText("선택됨", Modifier.fontSize(12.px).color(Color.black))
+                if (selected) SpanText("선택됨", Modifier.fontSize(12.px))
             }
             P({ style { margin(0.px); fontSize(15.px); lineHeight(24.px) } }) { Text(text) }
         }
@@ -116,15 +101,8 @@ fun ResultBar(v: Votes) {
     val pa = if (total > 0) v.a * 100.0 / total else 50.0
     val pb = 100.0 - pa
     Div({ style { marginTop(12.px) } }) {
-        Div({
-            style {
-                height(8.px); width(100.percent); property(
-                "background-color",
-                "#f2f2f2"
-            ); borderRadius(999.px); overflow("hidden")
-            }
-        }) {
-            Div({ style { height(100.percent); width(pa.percent); backgroundColor(Color.black) } }) {}
+        Div({ style { height(8.px); width(100.percent); property("background-color","var(--border)"); borderRadius(999.px); overflow("hidden") } }) {
+            Div({ style { height(100.percent); width(pa.percent); property("background-color","var(--accent)") } }) {}
         }
         Row(Modifier.justifyContent(JustifyContent.SpaceBetween).margin(top = 6.px)) {
             SpanText("A ${pa.toInt()}%", Modifier.fontSize(12.px).color(Color.gray))
@@ -135,14 +113,7 @@ fun ResultBar(v: Votes) {
 
 @Composable
 fun PromptList(items: List<Prompt>, onPick: (String) -> Unit) {
-    Div({
-        style {
-            property("max-height", "360px"); overflow("auto"); property(
-            "padding-right",
-            "4px"
-        )
-        }
-    }) {
+    Div({ style { property("max-height", "360px"); overflow("auto"); property("padding-right","4px") } }) {
         items.forEach { p ->
             val total = p.votes.a + p.votes.b
             Div({
@@ -154,10 +125,7 @@ fun PromptList(items: List<Prompt>, onPick: (String) -> Unit) {
                 }
                 onClick { onPick(p.id) }
             }) {
-                Row(
-                    Modifier.alignItems(AlignItems.Center)
-                        .justifyContent(JustifyContent.SpaceBetween).margin(bottom = 4.px)
-                ) {
+                Row(Modifier.alignItems(AlignItems.Center).justifyContent(JustifyContent.SpaceBetween).margin(bottom = 4.px)) {
                     Pill(p.category)
                     // createdAt is millis
                     SpanText(
@@ -171,7 +139,7 @@ fun PromptList(items: List<Prompt>, onPick: (String) -> Unit) {
                 SpanText("총 ${total}표", Modifier.fontSize(12.px).color(Color.gray))
             }
         }
-        if (items.isEmpty()) P({ style { color(Color.gray) } }) { Text("검색 조건에 맞는 질문이 없어요.") }
+        if (items.isEmpty()) P({ style { property("color","var(--muted)") } }) { Text("검색 조건에 맞는 질문이 없어요.") }
     }
 }
 
@@ -191,27 +159,17 @@ fun AddForm(onAdd: (a: String, b: String, category: String, tags: String, author
     }
 
     Column(Modifier.gap(8.px)) {
-        Input(InputType.Text, attrs = { placeholder("옵션 A"); value(a); onInput { a = it.value } })
-        Input(InputType.Text, attrs = { placeholder("옵션 B"); value(b); onInput { b = it.value } })
+        Input(InputType.Text, attrs = { classes("input"); placeholder("옵션 A"); value(a); onInput { a = it.value } })
+        Input(InputType.Text, attrs = { classes("input"); placeholder("옵션 B"); value(b); onInput { b = it.value } })
         Row(Modifier.gap(8.px)) {
-            Input(
-                InputType.Text,
-                attrs = {
-                    placeholder("카테고리 (선택)"); value(category); onInput {
-                    category = it.value
-                }
-                })
-            Input(
-                InputType.Text,
-                attrs = { placeholder("태그(쉼표 구분)"); value(tags); onInput { tags = it.value } })
+            Input(InputType.Text, attrs = { classes("input"); placeholder("카테고리 (선택)"); value(category); onInput { category = it.value } })
+            Input(InputType.Text, attrs = { classes("input"); placeholder("태그(쉼표 구분)"); value(tags); onInput { tags = it.value } })
         }
-        Input(
-            InputType.Text,
-            attrs = { placeholder("작성자 (선택)"); value(author); onInput { author = it.value } })
+        Input(InputType.Text, attrs = { classes("input"); placeholder("작성자 (선택)"); value(author); onInput { author = it.value } })
         err?.let { P({ style { color(Color.red); fontSize(12.px) } }) { Text(it) } }
         Row(Modifier.justifyContent(JustifyContent.FlexEnd)) {
             Button(onClick = {
-                val A = a.trim();
+                val A = a.trim()
                 val B = b.trim()
                 err = when {
                     A.isBlank() || B.isBlank() -> "두 옵션을 모두 입력해 주세요."
@@ -223,7 +181,7 @@ fun AddForm(onAdd: (a: String, b: String, category: String, tags: String, author
                     onAdd(A, B, category.trim(), tags.trim(), author.trim())
                     a = ""; b = ""; author = ""
                 }
-            }) { SpanText("질문 추가") }
+            }, modifier = Modifier.classNames("btn","btn-primary")) { SpanText("질문 추가") }
         }
     }
 }

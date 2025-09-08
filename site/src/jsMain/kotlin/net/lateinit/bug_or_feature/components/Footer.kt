@@ -7,13 +7,7 @@ import org.jetbrains.compose.web.dom.Text
 
 @Composable
 fun Footer() {
-    Div({
-        style {
-            marginTop(32.px); property("padding-bottom", "40px"); color(Color.gray); fontSize(
-            12.px
-        )
-        }
-    }) {
+    Div({ classes("footer"); style { marginTop(32.px); property("padding-bottom", "40px"); fontSize(12.px) } }) {
         Text("© ")
         Text(js("new Date().getFullYear().toString()") as String)
         Text(" Balance Game — Kobweb MVP")
