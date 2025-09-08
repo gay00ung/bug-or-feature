@@ -29,6 +29,7 @@ import org.jetbrains.compose.web.css.height
 import org.jetbrains.compose.web.css.margin
 import org.jetbrains.compose.web.css.maxWidth
 import org.jetbrains.compose.web.css.padding
+import org.jetbrains.compose.web.css.percent
 import org.jetbrains.compose.web.css.px
 import org.jetbrains.compose.web.css.width
 import org.jetbrains.compose.web.dom.Div
@@ -49,7 +50,7 @@ fun Container(content: @Composable () -> Unit) {
     }) {
         Div({
             style {
-                maxWidth(1100.px)
+                maxWidth(1200.px)
                 property("margin-left", "auto")
                 property("margin-right", "auto")
                 padding(0.px, 16.px)
@@ -85,6 +86,7 @@ fun Header(onShare: () -> Unit, onReset: () -> Unit) {
             theme = next
             applyTheme(next)
         }
+        Div({ style { maxWidth(1200.px); property("margin-left","auto"); property("margin-right","auto"); padding(0.px,16.px) } }) {
         Row(
             Modifier.padding(18.px, 0.px).alignItems(AlignItems.Center)
                 .justifyContent(JustifyContent.SpaceBetween)
@@ -116,6 +118,7 @@ fun Header(onShare: () -> Unit, onReset: () -> Unit) {
             }
         }
         }
+        }
     }
 }
 
@@ -126,7 +129,7 @@ fun MainGrid(content: @Composable () -> Unit) {
 
 @Composable
 fun SectionCard(content: @Composable () -> Unit) {
-    Div({ classes("card"); style { padding(20.px) } }) { content() }
+    Div({ classes("card"); style { padding(20.px); width(100.percent) } }) { content() }
 }
 
 @Composable

@@ -142,10 +142,10 @@ fun ResultBar(v: Votes) {
 fun PromptList(items: List<Prompt>, onPick: (String) -> Unit) {
     Div({
         style {
-            property("max-height", "360px"); overflow("auto"); property(
-            "padding-right",
-            "4px"
-        )
+            width(100.percent)
+            property("max-height", "360px")
+            overflow("auto")
+            property("padding-right", "4px")
         }
     }) {
         items.forEach { p ->

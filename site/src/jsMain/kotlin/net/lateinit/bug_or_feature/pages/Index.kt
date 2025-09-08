@@ -14,6 +14,7 @@ import com.varabyte.kobweb.compose.ui.modifiers.fillMaxSize
 import com.varabyte.kobweb.compose.ui.modifiers.gap
 import com.varabyte.kobweb.compose.ui.modifiers.justifyContent
 import com.varabyte.kobweb.compose.ui.modifiers.margin
+import com.varabyte.kobweb.compose.ui.modifiers.width
 import com.varabyte.kobweb.core.Page
 import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.layout.Surface
@@ -41,8 +42,8 @@ import org.jetbrains.compose.web.attributes.selected
 import org.jetbrains.compose.web.css.JustifyContent
 import org.jetbrains.compose.web.css.Style
 import org.jetbrains.compose.web.css.fontSize
+import org.jetbrains.compose.web.css.percent
 import org.jetbrains.compose.web.css.px
-import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.H3
 import org.jetbrains.compose.web.dom.Input
 import org.jetbrains.compose.web.dom.Option
@@ -107,7 +108,7 @@ fun Index() {
                 SectionCard {
                     if (current != null) {
                         PromptHeader(current)
-                        H2 { Text("무엇을 고를래?") }
+                        H3 { Text("if(!선택) throw new HellException();") }
                         Spacer(8)
                         OptionCard(
                             label = "A",
@@ -152,9 +153,10 @@ fun Index() {
                 Column(Modifier.gap(24.px)) {
                     SectionCard {
                         H3 { Text("찾기") }
-                        Row(Modifier.gap(8.px).margin(top = 8.px, bottom = 8.px)) {
+                        Row(Modifier.gap(8.px).margin(top = 8.px, bottom = 8.px).width(100.percent)) {
                             Select(attrs = {
                                 classes("input")
+                                style { property("flex", "1 1 0"); property("min-width", "0") }
                                 onChange { category = it.value ?: "all" }
                             }) {
                                 categories.forEach { c ->
@@ -166,6 +168,7 @@ fun Index() {
                             }
                             Input(InputType.Text, attrs = {
                                 classes("input")
+                                style { property("flex", "1 1 0"); property("min-width", "0") }
                                 placeholder("키워드/태그 검색")
                                 value(query)
                                 onInput { query = it.value }

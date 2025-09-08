@@ -77,6 +77,9 @@ object AppStyles : StyleSheet() {
             property("background", "var(--surface)")
             property("backdrop-filter", "saturate(1.2) blur(8px)")
             property("border-bottom", "1px solid var(--border)")
+            property("width", "100vw")
+            property("margin-left", "calc(50% - 50vw)")
+            property("margin-right", "calc(50% - 50vw)")
         }
 
         ".card" style {
