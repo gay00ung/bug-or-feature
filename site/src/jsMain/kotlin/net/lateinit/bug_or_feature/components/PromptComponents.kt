@@ -5,29 +5,73 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.varabyte.kobweb.compose.foundation.layout.Column
 import com.varabyte.kobweb.compose.foundation.layout.Row
 import com.varabyte.kobweb.compose.ui.Modifier
+import com.varabyte.kobweb.compose.ui.modifiers.alignItems
+import com.varabyte.kobweb.compose.ui.modifiers.border
+import com.varabyte.kobweb.compose.ui.modifiers.borderRadius
+import com.varabyte.kobweb.compose.ui.modifiers.color
+import com.varabyte.kobweb.compose.ui.modifiers.fontSize
+import com.varabyte.kobweb.compose.ui.modifiers.gap
+import com.varabyte.kobweb.compose.ui.modifiers.justifyContent
+import com.varabyte.kobweb.compose.ui.modifiers.margin
+import com.varabyte.kobweb.compose.ui.modifiers.padding
 import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.text.SpanText
 import net.lateinit.bug_or_feature.model.Prompt
 import net.lateinit.bug_or_feature.model.Votes
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.placeholder
-import org.jetbrains.compose.web.css.*
-import org.jetbrains.compose.web.dom.*
+import org.jetbrains.compose.web.css.AlignItems
+import org.jetbrains.compose.web.css.Color
+import org.jetbrains.compose.web.css.DisplayStyle
+import org.jetbrains.compose.web.css.JustifyContent
+import org.jetbrains.compose.web.css.LineStyle
+import org.jetbrains.compose.web.css.backgroundColor
+import org.jetbrains.compose.web.css.borderRadius
+import org.jetbrains.compose.web.css.color
+import org.jetbrains.compose.web.css.display
+import org.jetbrains.compose.web.css.fontSize
+import org.jetbrains.compose.web.css.fontWeight
+import org.jetbrains.compose.web.css.gap
+import org.jetbrains.compose.web.css.height
+import org.jetbrains.compose.web.css.lineHeight
+import org.jetbrains.compose.web.css.margin
+import org.jetbrains.compose.web.css.marginBottom
+import org.jetbrains.compose.web.css.marginTop
+import org.jetbrains.compose.web.css.overflow
+import org.jetbrains.compose.web.css.padding
+import org.jetbrains.compose.web.css.percent
+import org.jetbrains.compose.web.css.px
+import org.jetbrains.compose.web.css.textAlign
+import org.jetbrains.compose.web.css.width
+import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.Input
+import org.jetbrains.compose.web.dom.P
+import org.jetbrains.compose.web.dom.Text
 
 @Composable
 fun PromptHeader(p: Prompt) {
-    Row({ style { alignItems(AlignItems.Center); gap(8.px); marginBottom(8.px) } }) {
-        Pill(p.category)
-        p.tags.take(3).forEach { Pill("#$it") }
-        SpanText("ID: ${p.id}", Modifier.margin(left = Auto).fontSize(12.px).color(Color.gray))
+    Row(
+        Modifier.alignItems(AlignItems.Center).gap(8.px).margin(bottom = 8.px)
+            .justifyContent(JustifyContent.SpaceBetween)
+    ) {
+        Div({ style { display(DisplayStyle.Flex); gap(8.px) } }) {
+            Pill(p.category)
+            p.tags.take(3).forEach { Pill("#$it") }
+        }
+        SpanText("ID: ${p.id}", Modifier.fontSize(12.px).color(Color.gray))
     }
 }
 
 @Composable
 fun Pill(text: String) {
-    SpanText(text, Modifier.border(1.px, LineStyle.Solid, Color.rgb(230,230,230)).padding(4.px,8.px).borderRadius(999.px).fontSize(12.px).color(Color.gray))
+    SpanText(
+        text,
+        Modifier.border(1.px, LineStyle.Solid, Color.gray).padding(4.px, 8.px).borderRadius(999.px)
+            .fontSize(12.px).color(Color.gray)
+    )
 }
 
 @Composable
@@ -42,11 +86,23 @@ fun OptionCard(
     val total = votes.a + votes.b
     val count = if (side == "a") votes.a else votes.b
     val ratio = if (total > 0) (count * 100) / total else 0
-    Button(onClick = onClick) {
+    Button(onClick = { onClick() }) {
         Div({ style { textAlign("left"); width(100.percent) } }) {
-            Row({ style { gap(8.px); marginBottom(4.px); alignItems(AlignItems.Center) } }) {
-                Div({ style { width(24.px); height(24.px); borderRadius(999.px); backgroundColor(Color.black); color(Color.white); display(DisplayStyle.Grid); property("place-items","center"); fontSize(12.px); fontWeight("700") } }) { Text(label) }
-                if (total > 0) SpanText("${ratio}% (${count}표)", Modifier.fontSize(12.px).color(Color.gray))
+            Row(Modifier.gap(8.px).margin(bottom = 4.px).alignItems(AlignItems.Center)) {
+                Div({
+                    style {
+                        width(24.px); height(24.px); borderRadius(999.px); backgroundColor(
+                        Color.black
+                    ); color(Color.white); display(DisplayStyle.Grid); property(
+                        "place-items",
+                        "center"
+                    ); fontSize(12.px); fontWeight("700")
+                    }
+                }) { Text(label) }
+                if (total > 0) SpanText(
+                    "${ratio}% (${count}표)",
+                    Modifier.fontSize(12.px).color(Color.gray)
+                )
                 if (selected) SpanText("선택됨", Modifier.fontSize(12.px).color(Color.black))
             }
             P({ style { margin(0.px); fontSize(15.px); lineHeight(24.px) } }) { Text(text) }
@@ -60,29 +116,55 @@ fun ResultBar(v: Votes) {
     val pa = if (total > 0) v.a * 100.0 / total else 50.0
     val pb = 100.0 - pa
     Div({ style { marginTop(12.px) } }) {
-        Div({ style { height(8.px); width(100.percent); backgroundColor(Color.rgb(242,242,242)); borderRadius(999.px); overflow("hidden") } }) {
+        Div({
+            style {
+                height(8.px); width(100.percent); property(
+                "background-color",
+                "#f2f2f2"
+            ); borderRadius(999.px); overflow("hidden")
+            }
+        }) {
             Div({ style { height(100.percent); width(pa.percent); backgroundColor(Color.black) } }) {}
         }
-        Row({ style { justifyContent(JustifyContent.SpaceBetween); marginTop(6.px); color(Color.gray); fontSize(12.px) } }) {
-            SpanText("A ${pa.toInt()}%")
-            SpanText("B ${pb.toInt()}%")
+        Row(Modifier.justifyContent(JustifyContent.SpaceBetween).margin(top = 6.px)) {
+            SpanText("A ${pa.toInt()}%", Modifier.fontSize(12.px).color(Color.gray))
+            SpanText("B ${pb.toInt()}%", Modifier.fontSize(12.px).color(Color.gray))
         }
     }
 }
 
 @Composable
 fun PromptList(items: List<Prompt>, onPick: (String) -> Unit) {
-    Div({ style { property("max-height", "360px"); overflow("auto"); property("padding-right", "4px") } }) {
+    Div({
+        style {
+            property("max-height", "360px"); overflow("auto"); property(
+            "padding-right",
+            "4px"
+        )
+        }
+    }) {
         items.forEach { p ->
             val total = p.votes.a + p.votes.b
             Div({
-                style { border(1.px, LineStyle.Solid, Color.rgb(228,228,228)); borderRadius(16.px); padding(12.px); marginBottom(8.px) }
+                style {
+                    property(
+                        "border",
+                        "1px solid #e4e4e4"
+                    ); borderRadius(16.px); padding(12.px); marginBottom(8.px)
+                }
                 onClick { onPick(p.id) }
             }) {
-                Row({ style { alignItems(AlignItems.Center); marginBottom(4.px) } }) {
+                Row(
+                    Modifier.alignItems(AlignItems.Center)
+                        .justifyContent(JustifyContent.SpaceBetween).margin(bottom = 4.px)
+                ) {
                     Pill(p.category)
                     // createdAt is millis
-                    SpanText(js("new Date(p.createdAt)").unsafeCast<dynamic>().toLocaleDateString() as String, Modifier.margin(left = Auto).fontSize(12.px).color(Color.gray))
+                    SpanText(
+                        js("new Date(p.createdAt)").unsafeCast<dynamic>()
+                            .toLocaleDateString() as String,
+                        Modifier.fontSize(12.px).color(Color.gray)
+                    )
                 }
                 P({ style { margin(0.px); fontSize(13.px) } }) { Text("A. ${p.a}") }
                 P({ style { margin(0.px); fontSize(13.px) } }) { Text("B. ${p.b}") }
@@ -103,23 +185,34 @@ fun AddForm(onAdd: (a: String, b: String, category: String, tags: String, author
     var err by remember { mutableStateOf<String?>(null) }
 
     fun hasBanned(s: String): Boolean {
-        val banned = listOf("씨발","좆","병신","fuck","shit")
+        val banned = listOf("씨발", "좆", "병신", "fuck", "shit")
         val lower = s.lowercase()
         return banned.any { lower.contains(it) }
     }
 
-    Column({ style { gap(8.px) } }) {
+    Column(Modifier.gap(8.px)) {
         Input(InputType.Text, attrs = { placeholder("옵션 A"); value(a); onInput { a = it.value } })
         Input(InputType.Text, attrs = { placeholder("옵션 B"); value(b); onInput { b = it.value } })
-        Row({ style { gap(8.px) } }) {
-            Input(InputType.Text, attrs = { placeholder("카테고리 (선택)"); value(category); onInput { category = it.value } })
-            Input(InputType.Text, attrs = { placeholder("태그(쉼표 구분)"); value(tags); onInput { tags = it.value } })
+        Row(Modifier.gap(8.px)) {
+            Input(
+                InputType.Text,
+                attrs = {
+                    placeholder("카테고리 (선택)"); value(category); onInput {
+                    category = it.value
+                }
+                })
+            Input(
+                InputType.Text,
+                attrs = { placeholder("태그(쉼표 구분)"); value(tags); onInput { tags = it.value } })
         }
-        Input(InputType.Text, attrs = { placeholder("작성자 (선택)"); value(author); onInput { author = it.value } })
+        Input(
+            InputType.Text,
+            attrs = { placeholder("작성자 (선택)"); value(author); onInput { author = it.value } })
         err?.let { P({ style { color(Color.red); fontSize(12.px) } }) { Text(it) } }
-        Row({ style { justifyContent(JustifyContent.FlexEnd) } }) {
+        Row(Modifier.justifyContent(JustifyContent.FlexEnd)) {
             Button(onClick = {
-                val A = a.trim(); val B = b.trim()
+                val A = a.trim();
+                val B = b.trim()
                 err = when {
                     A.isBlank() || B.isBlank() -> "두 옵션을 모두 입력해 주세요."
                     A.length > 120 || B.length > 120 -> "각 옵션은 120자 이하여야 해요."
@@ -134,4 +227,3 @@ fun AddForm(onAdd: (a: String, b: String, category: String, tags: String, author
         }
     }
 }
-

@@ -1,8 +1,13 @@
 package net.lateinit.bug_or_feature.pages
 
 import androidx.compose.runtime.*
+import com.varabyte.kobweb.compose.foundation.layout.Column
+import com.varabyte.kobweb.compose.foundation.layout.Row
 import com.varabyte.kobweb.compose.ui.Modifier
 import com.varabyte.kobweb.compose.ui.modifiers.fillMaxSize
+import com.varabyte.kobweb.compose.ui.modifiers.gap
+import com.varabyte.kobweb.compose.ui.modifiers.justifyContent
+import com.varabyte.kobweb.compose.ui.modifiers.margin
 import com.varabyte.kobweb.core.Page
 import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.layout.Surface
@@ -12,17 +17,19 @@ import net.lateinit.bug_or_feature.components.*
 import net.lateinit.bug_or_feature.model.Prompt
 import net.lateinit.bug_or_feature.repository.PromptRepository
 import net.lateinit.bug_or_feature.styles.AppStyles
-import net.lateinit.bug_or_feature.util.uid
 import net.lateinit.bug_or_feature.util.shareLink
+import net.lateinit.bug_or_feature.util.uid
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.placeholder
+import org.jetbrains.compose.web.attributes.value
+import org.jetbrains.compose.web.attributes.selected
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
 
 @Page
 @Composable
 fun Index() {
-    var prompts by remember { mutableStateOf(PromptRepository.loadPrompts()) }
+    var prompts by remember { mutableStateOf<List<Prompt>>(PromptRepository.loadPrompts()) }
     var votes by remember { mutableStateOf(PromptRepository.loadVotes()) }
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("all") }
@@ -54,7 +61,8 @@ fun Index() {
             .filter {
                 val q = query.trim().lowercase()
                 if (q.isBlank()) true
-                else it.a.lowercase().contains(q) || it.b.lowercase().contains(q) || it.tags.any { t -> t.lowercase().contains(q) }
+                else it.a.lowercase().contains(q) || it.b.lowercase()
+                    .contains(q) || it.tags.any { t -> t.lowercase().contains(q) }
             }
             .toList()
     }
@@ -101,10 +109,15 @@ fun Index() {
                             side = "b"
                         )
                         ResultBar(current.votes)
-                        Row({ style { marginTop(16.px); gap(8.px) } }) {
+                        Row(
+                            Modifier.margin(top = 16.px).gap(8.px)
+                                .justifyContent(JustifyContent.SpaceBetween)
+                        ) {
                             Button(onClick = { shareLink(current.id) }) { SpanText("이 질문 공유") }
-                            Button(onClick = { currentId = null; window.location.hash = "" }) { SpanText("다른 질문 보기") }
-                            SpanText("by ${current.author}", Modifier.margin(left =  Auto))
+                            Button(onClick = {
+                                currentId = null; window.location.hash = ""
+                            }) { SpanText("다른 질문 보기") }
+                            SpanText("by ${current.author}")
                         }
                     } else {
                         SpanText("표시할 질문이 없어요. 오른쪽에서 새 질문을 추가해보세요.")
@@ -112,14 +125,18 @@ fun Index() {
                 }
 
                 // Right: 검색/추가
-                Column({ style { gap(24.px) } }) {
+                Column(Modifier.gap(24.px)) {
                     SectionCard {
                         H3 { Text("찾기") }
-                        Row({ style { gap(8.px); marginTop(8.px) } }) {
-                            Select(value = category, attrs = {
+                        Row(Modifier.gap(8.px).margin(top = 8.px)) {
+                            Select(attrs = {
                                 onChange { category = it.value ?: "all" }
                             }) {
-                                categories.forEach { c -> Option(c) }
+                                categories.forEach { c ->
+                                    Option(c, attrs = {
+                                        if (c == category) selected()
+                                    }) { Text(c) }
+                                }
                             }
                             Input(InputType.Text, attrs = {
                                 placeholder("키워드/태그 검색")
@@ -127,7 +144,9 @@ fun Index() {
                                 onInput { query = it.value }
                             })
                         }
-                        PromptList(filtered) { id -> currentId = id; window.location.hash = "#q=$id" }
+                        PromptList(filtered) { id ->
+                            currentId = id; window.location.hash = "#q=$id"
+                        }
                     }
 
                     SectionCard {
@@ -142,7 +161,7 @@ fun Index() {
                                 tags = tags.split(',').map { it.trim() }.filter { it.isNotBlank() },
                                 author = author.ifBlank { "익명" }
                             )
-                            prompts = mutableListOf(item).apply { addAll(prompts) }
+                            prompts = listOf(item) + prompts
                             window.location.hash = "#q=$id"
                         }
                         P({ style { fontSize(11.px); color(Color.gray) } }) { Text("공격적/차별적 콘텐츠는 금지. 가벼운 비속어는 자동 차단돼요.") }
@@ -153,5 +172,3 @@ fun Index() {
         }
     }
 }
-
-// Note: UI pieces & styles extracted into components/ & styles/
