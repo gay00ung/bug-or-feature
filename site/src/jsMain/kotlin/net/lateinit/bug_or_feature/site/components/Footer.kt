@@ -1,0 +1,15 @@
+package net.lateinit.bug_or_feature.site.components
+
+import androidx.compose.runtime.Composable
+import org.jetbrains.compose.web.css.*
+import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.Text
+
+@Composable
+fun Footer() {
+    Div({ classes("footer"); style { marginTop(32.px); property("padding-bottom", "40px"); fontSize(12.px) } }) {
+        Text("© ")
+        Text(js("new Date().getFullYear().toString()") as String)
+        Text(" Balance Game — Kobweb MVP")
+    }
+}

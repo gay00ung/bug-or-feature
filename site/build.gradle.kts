@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.kobwebx.markdown)
 }
 
-group = "net.lateinit.bug_or_feature"
+group = "net.lateinit.bug_or_feature.site"
 version = "1.0-SNAPSHOT"
 
 kobweb {
@@ -20,12 +20,13 @@ kobweb {
 }
 
 kotlin {
-    configAsKobwebApplication("bug_or_feature", includeServer = true)
+    configAsKobwebApplication("bug_or_feature", includeServer = false)
 
     sourceSets {
-//        commonMain.dependencies {
-//          // Add shared dependencies between JS and JVM here
-//        }
+        commonMain.dependencies {
+            implementation(project(":shared"))
+            implementation(libs.serialization.json)
+        }
         jsMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.html.core)
@@ -34,10 +35,11 @@ kotlin {
             implementation(libs.silk.icons.fa)
             implementation(libs.kobwebx.markdown)
             implementation(libs.serialization.json)
-            
-        }
-        jvmMain.dependencies {
-            compileOnly(libs.kobweb.api) // Provided by Kobweb backend at runtime
+
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.js)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
         }
     }
 }
