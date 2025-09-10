@@ -1,4 +1,5 @@
 import com.varabyte.kobweb.gradle.application.util.configAsKobwebApplication
+import org.gradle.jvm.tasks.Jar
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -6,7 +7,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kobweb.application)
     alias(libs.plugins.kobwebx.markdown)
-    application
 }
 
 group = "net.lateinit.bug_or_feature.site"
@@ -60,7 +60,26 @@ kotlin {
     }
 }
 
-application {
-    // JVM main entry for standalone API server
-    mainClass.set("net.lateinit.bug_or_feature.site.server.ServerKt")
+// Create a self-contained (fat) JAR for the Ktor server so we can run it without the 'application' plugin
+// This avoids the incompatibility between 'application' and 'kotlin-multiplatform' plugins.
+tasks.register<Jar>("serverFatJar") {
+    group = "build"
+    archiveBaseName.set("site-server")
+    archiveClassifier.set("")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // Main class for Ktor server
+    manifest {
+        attributes["Main-Class"] = "net.lateinit.bug_or_feature.site.server.ServerKt"
+    }
+
+    // Include compiled classes from the JVM target
+    val jvmTarget = kotlin.targets.getByName("jvm")
+    val jvmCompilation = jvmTarget.compilations.getByName("main")
+    from(jvmCompilation.output)
+
+    // Include runtime dependencies
+    val runtimeClasspath = configurations.getByName("jvmRuntimeClasspath")
+    dependsOn(jvmCompilation.compileAllTaskName)
+    from(runtimeClasspath.map { if (it.isDirectory) it else zipTree(it) })
 }

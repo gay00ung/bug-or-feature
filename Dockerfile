@@ -4,15 +4,13 @@ FROM eclipse-temurin:17-jdk as build
 WORKDIR /app
 
 COPY . .
-RUN ./gradlew :site:installDist --no-daemon
+RUN ./gradlew :site:serverFatJar --no-daemon
 
 FROM eclipse-temurin:17-jre
 ENV PORT=8080
 WORKDIR /app
 
-# Copy installed distribution
-COPY --from=build /app/site/build/install/site /app/site
+COPY --from=build /app/site/build/libs/site-server.jar /app/app.jar
 
 EXPOSE 8080
-CMD ["/app/site/bin/site"]
-
+CMD ["java","-jar","/app/app.jar"]
