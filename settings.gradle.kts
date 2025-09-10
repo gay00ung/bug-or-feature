@@ -30,4 +30,5 @@ gradle.settingsEvaluated {
 rootProject.name = "bug_or_feature"
 
 include(":site")
-
+include(":server")
+include(":shared")
