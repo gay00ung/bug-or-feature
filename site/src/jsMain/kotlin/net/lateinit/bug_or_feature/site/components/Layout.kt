@@ -86,38 +86,56 @@ fun Header(onShare: () -> Unit, onReset: () -> Unit) {
             theme = next
             applyTheme(next)
         }
-        Div({ style { maxWidth(1200.px); property("margin-left","auto"); property("margin-right","auto"); padding(0.px,16.px) } }) {
-        Row(
-            Modifier.padding(18.px, 0.px).alignItems(AlignItems.Center)
-                .justifyContent(JustifyContent.SpaceBetween)
-        ) {
-            Div({ style { display(DisplayStyle.Flex); alignItems(AlignItems.Center); gap(12.px) } }) {
-                Div({
-                    style {
-                        width(36.px); height(36.px); borderRadius(12.px); display(DisplayStyle.Grid); property(
-                        "place-items",
-                        "center"
-                    )
-                    }; classes("logo")
-                }) { Text("⚖️") }
-                Div {
-                    H1({ style { fontSize(22.px); margin(0.px) } }) { Text("개발자 지옥 밸런스게임") }
-                P({ style { margin(0.px); fontSize(12.px); property("color","var(--muted)") } }) { Text("심심할 땐 선택하고, 더 심심하면 질문 추가하기") }
+        Div({
+            style {
+                maxWidth(1200.px); property("margin-left", "auto"); property(
+                "margin-right",
+                "auto"
+            ); padding(0.px, 16.px)
+            }
+        }) {
+            Row(
+                Modifier.padding(18.px, 0.px).alignItems(AlignItems.Center)
+                    .justifyContent(JustifyContent.SpaceBetween)
+            ) {
+                Div({ style { display(DisplayStyle.Flex); alignItems(AlignItems.Center); gap(12.px) } }) {
+                    Div({
+                        style {
+                            width(36.px); height(36.px); borderRadius(12.px); display(DisplayStyle.Grid); property(
+                            "place-items",
+                            "center"
+                        )
+                        }; classes("logo")
+                    }) { Text("⚖️") }
+                    Div {
+                        H1({ style { fontSize(22.px); margin(0.px) } }) { Text("개발자 지옥 밸런스게임") }
+                        P({
+                            style {
+                                margin(0.px); fontSize(12.px); property(
+                                "color",
+                                "var(--muted)"
+                            )
+                            }
+                        }) { Text("심심할 땐 선택하고, 더 심심하면 질문 추가하기") }
+                    }
+                }
+                Row(Modifier.gap(8.px)) {
+//            임시 주석 처리
+//            Button(onClick = { onShare() }, modifier = Modifier.classNames("btn", "btn-primary")) { SpanText("현재 질문 공유") }
+//            Button(onClick = { onReset() }, modifier = Modifier.classNames("btn", "btn-ghost")) { SpanText("랜덤/최신 보기") }
+                    Button(
+                        onClick = { toggleTheme() },
+                        modifier = Modifier.classNames("btn", "btn-ghost")
+                    ) {
+                        val label = when (theme) {
+                            "dark" -> "☀️ 라이트"
+                            "light" -> "🖥 자동"
+                            else -> "🌙 다크"
+                        }
+                        SpanText(label)
+                    }
                 }
             }
-        Row(Modifier.gap(8.px)) {
-            Button(onClick = { onShare() }, modifier = Modifier.classNames("btn", "btn-primary")) { SpanText("현재 질문 공유") }
-            Button(onClick = { onReset() }, modifier = Modifier.classNames("btn", "btn-ghost")) { SpanText("랜덤/최신 보기") }
-            Button(onClick = { toggleTheme() }, modifier = Modifier.classNames("btn", "btn-ghost")) {
-                val label = when (theme) {
-                    "dark" -> "☀️ 라이트"
-                    "light" -> "🖥 자동"
-                    else -> "🌙 다크"
-                }
-                SpanText(label)
-            }
-        }
-        }
         }
     }
 }
