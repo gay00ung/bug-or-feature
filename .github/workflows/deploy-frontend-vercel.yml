@@ -55,6 +55,22 @@ jobs:
           # Copy root vercel.json, replacing placeholder with the actual Railway URL
           sed "s|https://YOUR-RAILWAY-APP.up.railway.app|$RAILWAY_PUBLIC_URL|g" vercel.json > "$EXPORT_DIR/vercel.json"
 
+      - name: Wait for Railway (healthy)
+        run: |
+          URL="${RAILWAY_PUBLIC_URL%/}/prompts"
+          echo "Waiting for server to be healthy at $URL ..."
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            if [ "$code" = "200" ]; then
+              echo "Railway healthy (200). Proceeding to deploy frontend."
+              exit 0
+            fi
+            echo "Attempt $i/60: got $code, retrying in 5s..."
+            sleep 5
+          done
+          echo "Railway not healthy after 5 minutes. Failing build to avoid broken frontend deploy."
+          exit 1
+
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
@@ -65,4 +81,3 @@ jobs:
           cd site/build/kobweb/export
           # The Vercel CLI uses VERCEL_ORG_ID and VERCEL_PROJECT_ID from env
           vercel --prod --yes --token "$VERCEL_TOKEN"
-
