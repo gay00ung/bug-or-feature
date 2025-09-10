@@ -4,13 +4,15 @@ FROM eclipse-temurin:17-jdk as build
 WORKDIR /app
 
 COPY . .
-RUN ./gradlew :site:serverFatJar --no-daemon
+RUN ./gradlew :site:serverFatJar --no-daemon \
+    && (test -f site/build/libs/site-server.jar || (echo "Jar not found. Contents of site/build/libs:" && ls -la site/build/libs && exit 1)) \
+    && cp site/build/libs/site-server.jar /app/app.jar
 
 FROM eclipse-temurin:17-jre
 ENV PORT=8080
 WORKDIR /app
 
-COPY --from=build /app/site/build/libs/site-server.jar /app/app.jar
+COPY --from=build /app/app.jar /app/app.jar
 
 EXPOSE 8080
 CMD ["java","-jar","/app/app.jar"]
