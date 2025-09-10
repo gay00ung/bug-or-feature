@@ -2,10 +2,9 @@ package net.lateinit.bug_or_feature.site.repository
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import net.lateinit.bug_or_feature.site.db.PromptsTable
 import net.lateinit.bug_or_feature.shared.model.Prompt
 import net.lateinit.bug_or_feature.shared.model.Votes
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import net.lateinit.bug_or_feature.site.db.PromptsTable
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
