@@ -20,12 +20,26 @@ kobweb {
 }
 
 kotlin {
-    configAsKobwebApplication("bug_or_feature", includeServer = false)
+    configAsKobwebApplication("bug_or_feature", includeServer = true)
 
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared"))
             implementation(libs.serialization.json)
+        }
+        jvmMain.dependencies {
+            implementation(libs.kobweb.api)
+            implementation(project.dependencies.platform("io.ktor:ktor-bom:2.3.7"))
+
+            implementation("io.ktor:ktor-server-core")
+            implementation("io.ktor:ktor-server-content-negotiation")
+            implementation("io.ktor:ktor-serialization-kotlinx-json")
+            implementation("io.ktor:ktor-server-cors")
+
+            implementation("org.jetbrains.exposed:exposed-core:0.57.0")
+            implementation("org.jetbrains.exposed:exposed-dao:0.57.0")
+            implementation("org.jetbrains.exposed:exposed-jdbc:0.57.0")
+            implementation("org.xerial:sqlite-jdbc:3.47.1.0")
         }
         jsMain.dependencies {
             implementation(libs.compose.runtime)

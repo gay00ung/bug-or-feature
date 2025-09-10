@@ -10,7 +10,8 @@ import io.ktor.client.plugins.contentnegotiation.*
 import net.lateinit.bug_or_feature.shared.model.Prompt
 
 object ApiClient {
-    private val baseUrl = "http://localhost:8080/api"
+    // Use same-origin API when running under Kobweb dev server (no CORS)
+    private val baseUrl = "/api"
 
     private val client = HttpClient(Js) {
         install(ContentNegotiation) {
@@ -31,9 +32,9 @@ object ApiClient {
     }
 
     suspend fun vote(promptId: String, choice: String): Boolean {
-        val response = client.post("$baseUrl/prompts/$promptId/vote") {
+        val response = client.post("$baseUrl/prompts_vote") {
             contentType(ContentType.Application.Json)
-            setBody(mapOf("choice" to choice))
+            setBody(mapOf("id" to promptId, "choice" to choice))
         }
         return response.status.isSuccess()
     }
