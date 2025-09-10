@@ -1,0 +1,83 @@
+name: Deploy frontend to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: vercel-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      RAILWAY_PUBLIC_URL: ${{ secrets.RAILWAY_PUBLIC_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Export Kobweb site (static)
+        run: ./gradlew :site:kobwebExport --no-daemon
+
+      - name: Prepare vercel.json with Railway URL
+        run: |
+          EXPORT_DIR="site/build/kobweb/export"
+          mkdir -p "$EXPORT_DIR"
+          if [ -z "$RAILWAY_PUBLIC_URL" ]; then
+            echo "Missing RAILWAY_PUBLIC_URL secret (e.g., https://YOUR-APP.up.railway.app)" >&2
+            exit 1
+          fi
+          # Copy root vercel.json, replacing placeholder with the actual Railway URL
+          sed "s|https://YOUR-RAILWAY-APP.up.railway.app|$RAILWAY_PUBLIC_URL|g" vercel.json > "$EXPORT_DIR/vercel.json"
+
+      - name: Wait for Railway (healthy)
+        run: |
+          URL="${RAILWAY_PUBLIC_URL%/}/prompts"
+          echo "Waiting for server to be healthy at $URL ..."
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            if [ "$code" = "200" ]; then
+              echo "Railway healthy (200). Proceeding to deploy frontend."
+              exit 0
+            fi
+            echo "Attempt $i/60: got $code, retrying in 5s..."
+            sleep 5
+          done
+          echo "Railway not healthy after 5 minutes. Failing build to avoid broken frontend deploy."
+          exit 1
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Deploy to Vercel (prod)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          cd site/build/kobweb/export
+          # The Vercel CLI uses VERCEL_ORG_ID and VERCEL_PROJECT_ID from env
+          vercel --prod --yes --token "$VERCEL_TOKEN"

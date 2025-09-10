@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kobweb.application)
     alias(libs.plugins.kobwebx.markdown)
+    application
 }
 
 group = "net.lateinit.bug_or_feature.site"
@@ -32,6 +33,7 @@ kotlin {
             implementation(project.dependencies.platform("io.ktor:ktor-bom:2.3.7"))
 
             implementation("io.ktor:ktor-server-core")
+            implementation("io.ktor:ktor-server-netty")
             implementation("io.ktor:ktor-server-content-negotiation")
             implementation("io.ktor:ktor-serialization-kotlinx-json")
             implementation("io.ktor:ktor-server-cors")
@@ -56,4 +58,9 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
         }
     }
+}
+
+application {
+    // JVM main entry for standalone API server
+    mainClass.set("net.lateinit.bug_or_feature.site.server.ServerKt")
 }
