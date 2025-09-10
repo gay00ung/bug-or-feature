@@ -66,6 +66,7 @@ tasks.register<Jar>("serverFatJar") {
     group = "build"
     archiveBaseName.set("site-server")
     archiveClassifier.set("")
+    archiveFileName.set("site-server.jar")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     // Main class for Ktor server
