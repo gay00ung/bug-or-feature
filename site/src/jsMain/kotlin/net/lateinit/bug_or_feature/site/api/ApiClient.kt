@@ -7,15 +7,20 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.*
+import net.lateinit.bug_or_feature.site.util.getOrCreateClientUid
 import net.lateinit.bug_or_feature.shared.model.Prompt
 
 object ApiClient {
-    // Use same-origin API when running under Kobweb dev server (no CORS)
-    private val baseUrl = "/api"
+    private const val baseUrl = "/api"
 
     private val client = HttpClient(Js) {
+        expectSuccess = false
         install(ContentNegotiation) {
             json()
+        }
+        install(DefaultRequest) {
+            headers.append("X-UID", getOrCreateClientUid())
         }
     }
 
@@ -32,7 +37,7 @@ object ApiClient {
     }
 
     suspend fun vote(promptId: String, choice: String): Boolean {
-        val response = client.post("$baseUrl/prompts_vote") {
+        val response = client.post("$baseUrl/vote") {
             contentType(ContentType.Application.Json)
             setBody(mapOf("id" to promptId, "choice" to choice))
         }

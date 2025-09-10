@@ -38,7 +38,9 @@ object DatabaseFactory {
                     SchemaUtils.createMissingTablesAndColumns(PromptsTable)
                 }
             }
+
+            // VotesTable는 새로 추가된 테이블이므로 무조건 생성
+            SchemaUtils.createMissingTablesAndColumns(VotesTable)
         }
     }
 }
-

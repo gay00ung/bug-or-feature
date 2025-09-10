@@ -46,10 +46,12 @@ import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Text
 import kotlin.js.Date
 import net.lateinit.bug_or_feature.shared.model.Prompt
+import net.lateinit.bug_or_feature.site.util.getOrCreateClientUid
 import net.lateinit.bug_or_feature.shared.model.Votes
 
 @Composable
 fun PromptHeader(p: Prompt) {
+    val userId = getOrCreateClientUid()
     Row(
         Modifier.alignItems(AlignItems.Center).gap(8.px).margin(bottom = 8.px)
             .justifyContent(JustifyContent.SpaceBetween)
@@ -58,7 +60,7 @@ fun PromptHeader(p: Prompt) {
             Pill(p.category)
             p.tags.take(3).forEach { Pill("#$it") }
         }
-        SpanText("ID: ${p.id}", Modifier.fontSize(12.px).color(Color.gray))
+        SpanText("ID: $userId", Modifier.fontSize(12.px).color(Color.gray))
     }
 }
 

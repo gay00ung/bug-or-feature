@@ -20,6 +20,10 @@ import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.layout.Surface
 import com.varabyte.kobweb.silk.components.text.SpanText
 import kotlinx.browser.window
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import net.lateinit.bug_or_feature.shared.model.Prompt
 import net.lateinit.bug_or_feature.site.api.ApiClient
 import net.lateinit.bug_or_feature.site.components.AddForm
 import net.lateinit.bug_or_feature.site.components.Container
@@ -33,7 +37,6 @@ import net.lateinit.bug_or_feature.site.components.ResultBar
 import net.lateinit.bug_or_feature.site.components.SectionCard
 import net.lateinit.bug_or_feature.site.components.Spacer
 import net.lateinit.bug_or_feature.site.repository.PromptRepository
-import net.lateinit.bug_or_feature.shared.model.Prompt
 import net.lateinit.bug_or_feature.site.styles.AppStyles
 import net.lateinit.bug_or_feature.site.util.shareLink
 import net.lateinit.bug_or_feature.site.util.uid
@@ -52,6 +55,7 @@ import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Select
 import org.jetbrains.compose.web.dom.Text
 
+@OptIn(DelicateCoroutinesApi::class)
 @Page
 @Composable
 fun Index() {
@@ -120,8 +124,18 @@ fun Index() {
                             text = current.a,
                             selected = votes[current.id] == "a",
                             onClick = {
-                                prompts = PromptRepository.applyVote(current.id, "a", prompts)
-                                votes = votes.toMutableMap().also { it[current.id] = "a" }
+                                // 서버는 비동기 호출이므로 코루틴에서 처리
+                                GlobalScope.launch {
+                                    val ok = ApiClient.vote(current.id, "a")
+                                    if (ok) {
+                                        // 성공하면 최신 투표 집계 불러오기
+                                        val fresh = ApiClient.getPrompts()
+                                        prompts = fresh
+                                        votes = votes.toMutableMap().also { it[current.id] = "a" }
+                                    } else {
+                                        window.alert("이미 투표했어요")
+                                    }
+                                }
                             },
                             votes = current.votes,
                             side = "a"
@@ -132,8 +146,16 @@ fun Index() {
                             text = current.b,
                             selected = votes[current.id] == "b",
                             onClick = {
-                                prompts = PromptRepository.applyVote(current.id, "b", prompts)
-                                votes = votes.toMutableMap().also { it[current.id] = "b" }
+                                GlobalScope.launch {
+                                    val ok = ApiClient.vote(current.id, "b")
+                                    if (ok) {
+                                        val fresh = ApiClient.getPrompts()
+                                        prompts = fresh
+                                        votes = votes.toMutableMap().also { it[current.id] = "b" }
+                                    } else {
+                                        window.alert("이미 투표했어요")
+                                    }
+                                }
                             },
                             votes = current.votes,
                             side = "b"
@@ -143,10 +165,16 @@ fun Index() {
                             Modifier.margin(top = 16.px).gap(8.px)
                                 .justifyContent(JustifyContent.SpaceBetween)
                         ) {
-                            Button(onClick = { shareLink(current.id) }, modifier = Modifier.classNames("btn","btn-primary")) { SpanText("이 질문 공유") }
-                            Button(onClick = {
-                                currentId = null; window.location.hash = ""
-                            }, modifier = Modifier.classNames("btn","btn-ghost")) { SpanText("다른 질문 보기") }
+                            Button(
+                                onClick = { shareLink(current.id) },
+                                modifier = Modifier.classNames("btn", "btn-primary")
+                            ) { SpanText("이 질문 공유") }
+                            Button(
+                                onClick = {
+                                    currentId = null; window.location.hash = ""
+                                },
+                                modifier = Modifier.classNames("btn", "btn-ghost")
+                            ) { SpanText("다른 질문 보기") }
                             SpanText("by ${current.author}")
                         }
                     } else {
@@ -158,7 +186,9 @@ fun Index() {
                 Column(Modifier.gap(24.px)) {
                     SectionCard {
                         H3 { Text("찾기") }
-                        Row(Modifier.gap(8.px).margin(top = 8.px, bottom = 8.px).width(100.percent)) {
+                        Row(
+                            Modifier.gap(8.px).margin(top = 8.px, bottom = 8.px).width(100.percent)
+                        ) {
                             Select(attrs = {
                                 classes("input")
                                 style { property("flex", "1 1 0"); property("min-width", "0") }
@@ -196,10 +226,26 @@ fun Index() {
                                 tags = tags.split(',').map { it.trim() }.filter { it.isNotBlank() },
                                 author = author.ifBlank { "익명" }
                             )
-                            prompts = listOf(item) + prompts
-                            window.location.hash = "#q=$id"
+                            GlobalScope.launch {
+                                val ok = ApiClient.addPrompt(item)
+                                if (ok) {
+                                    // 추가 성공하면 최신 목록 불러오기
+                                    val fresh = ApiClient.getPrompts()
+                                    prompts = fresh
+                                    window.location.hash = "#q=$id"
+                                } else {
+                                    window.alert("질문 저장에 실패했어요")
+                                }
+                            }
                         }
-                        P({ style { fontSize(11.px); property("color","var(--muted)") } }) { Text("공격적/차별적 콘텐츠는 금지. 가벼운 비속어는 자동 차단돼요.") }
+                        P({
+                            style {
+                                fontSize(11.px); property(
+                                "color",
+                                "var(--muted)"
+                            )
+                            }
+                        }) { Text("공격적/차별적 콘텐츠는 금지. 가벼운 비속어는 자동 차단돼요.") }
                     }
                 }
             }
