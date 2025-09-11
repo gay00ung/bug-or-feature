@@ -104,12 +104,20 @@ jobs:
           # 1) Prefer Kobweb consolidated site output if present
           if [ -d "$KOBWEB_SITE_DIR" ]; then
             echo "Assembling from $KOBWEB_SITE_DIR (preferred)"
+            echo "-- List $KOBWEB_SITE_DIR --"
+            ls -la "$KOBWEB_SITE_DIR" || true
             cp -r "$KOBWEB_SITE_DIR"/* "$DEPLOY_DIR/" || true
             # Move pages/* to root so index.html sits at root
             if [ -d "$DEPLOY_DIR/pages" ]; then
               echo "Flattening pages/ into root"
               cp -r "$DEPLOY_DIR/pages/"* "$DEPLOY_DIR/" || true
               rm -rf "$DEPLOY_DIR/pages"
+            fi
+            echo "-- After Kobweb copy, deploy dir --"
+            ls -la "$DEPLOY_DIR" || true
+            if [ -d "$DEPLOY_DIR/system" ]; then
+              echo "-- system/ listing --"
+              ls -la "$DEPLOY_DIR/system" || true
             fi
           fi
 
