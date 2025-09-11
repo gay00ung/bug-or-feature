@@ -95,14 +95,17 @@ jobs:
         run: |
           set -e
           DEPLOY_DIR=""
-          if echo "$EXPORT_DIR" | grep -q "site/build/dist/js/productionExecutable/public"; then
+          if [ -d site/build/dist/js/productionExecutable ]; then
             PROD_DIR="site/build/dist/js/productionExecutable"
             DEPLOY_DIR="site/build/vercel_deploy"
             rm -rf "$DEPLOY_DIR" && mkdir -p "$DEPLOY_DIR"
+            echo "Assembling from $PROD_DIR"
             cp -r "$PROD_DIR"/* "$DEPLOY_DIR/"
-            cp -r "$PROD_DIR/public/"* "$DEPLOY_DIR/"
-            rm -rf "$DEPLOY_DIR/public"
-            # Move vercel.json if it was written into the EXPORT_DIR
+            if [ -d "$PROD_DIR/public" ]; then
+              cp -r "$PROD_DIR/public/"* "$DEPLOY_DIR/"
+              rm -rf "$DEPLOY_DIR/public"
+            fi
+            # Bring vercel.json if present in export dir
             if [ -f "$EXPORT_DIR/vercel.json" ]; then
               cp "$EXPORT_DIR/vercel.json" "$DEPLOY_DIR/vercel.json"
             fi
