@@ -88,32 +88,50 @@ jobs:
           # Copy root vercel.json, replacing placeholder with the actual Railway URL
           sed "s|https://YOUR-RAILWAY-APP.up.railway.app|$RAILWAY_PUBLIC_URL|g" vercel.json > "$EXPORT_DIR/vercel.json"
 
-      - name: Assemble deploy folder if needed
+      - name: Assemble deploy folder
         id: assemble_deploy
         env:
           EXPORT_DIR: ${{ steps.resolve_export.outputs.EXPORT_DIR }}
         run: |
           set -e
-          DEPLOY_DIR=""
-          if [ -d site/build/dist/js/productionExecutable ]; then
-            PROD_DIR="site/build/dist/js/productionExecutable"
-            DEPLOY_DIR="site/build/vercel_deploy"
-            rm -rf "$DEPLOY_DIR" && mkdir -p "$DEPLOY_DIR"
-            echo "Assembling from $PROD_DIR"
-            cp -r "$PROD_DIR"/* "$DEPLOY_DIR/"
+          DEPLOY_DIR="site/build/vercel_deploy"
+          DIST_DIR="site/build/distributions"
+          PROD_DIR="site/build/dist/js/productionExecutable"
+          rm -rf "$DEPLOY_DIR" && mkdir -p "$DEPLOY_DIR"
+
+          if [ -d "$DIST_DIR" ]; then
+            echo "Copying bundle(s) from $DIST_DIR"
+            cp -r "$DIST_DIR"/* "$DEPLOY_DIR/" || true
+          fi
+
+          if [ -d "$PROD_DIR" ]; then
+            echo "Merging productionExecutable from $PROD_DIR"
+            cp -r "$PROD_DIR"/* "$DEPLOY_DIR/" || true
             if [ -d "$PROD_DIR/public" ]; then
-              cp -r "$PROD_DIR/public/"* "$DEPLOY_DIR/"
+              cp -r "$PROD_DIR/public/"* "$DEPLOY_DIR/" || true
               rm -rf "$DEPLOY_DIR/public"
             fi
-            # Bring vercel.json if present in export dir
-            if [ -f "$EXPORT_DIR/vercel.json" ]; then
-              cp "$EXPORT_DIR/vercel.json" "$DEPLOY_DIR/vercel.json"
-            fi
           fi
-          if [ -n "$DEPLOY_DIR" ]; then
-            echo "Using DEPLOY_DIR=$DEPLOY_DIR"
-            echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_OUTPUT
+
+          echo "Overlaying public from EXPORT_DIR=$EXPORT_DIR"
+          cp -r "$EXPORT_DIR"/* "$DEPLOY_DIR/" || true
+
+          # Ensure vercel.json present
+          if [ -f "$EXPORT_DIR/vercel.json" ]; then
+            cp "$EXPORT_DIR/vercel.json" "$DEPLOY_DIR/vercel.json"
           fi
+
+          echo "-- Deploy dir contents (top) --"
+          ls -la "$DEPLOY_DIR" || true
+          echo "-- Search for bug_or_feature.js in deploy --"
+          find "$DEPLOY_DIR" -maxdepth 2 -type f -name "bug_or_feature.js" -print || true
+
+          if [ ! -f "$DEPLOY_DIR/bug_or_feature.js" ]; then
+            echo "ERROR: bug_or_feature.js not found in deploy folder. Failing to avoid empty deployment." >&2
+            exit 1
+          fi
+
+          echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_OUTPUT
 
       - name: Wait for Railway (healthy)
         run: |
@@ -138,10 +156,6 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          if [ -n "${{ steps.assemble_deploy.outputs.DEPLOY_DIR }}" ]; then
-            cd "${{ steps.assemble_deploy.outputs.DEPLOY_DIR }}"
-          else
-            cd "${{ steps.resolve_export.outputs.EXPORT_DIR }}"
-          fi
+          cd "${{ steps.assemble_deploy.outputs.DEPLOY_DIR }}"
           # The Vercel CLI uses VERCEL_ORG_ID and VERCEL_PROJECT_ID from env
           vercel --prod --yes --token "$VERCEL_TOKEN"
