@@ -38,6 +38,13 @@ kotlin {
             implementation("io.ktor:ktor-serialization-kotlinx-json")
             implementation("io.ktor:ktor-server-cors")
 
+            // Logging backend to avoid SLF4J warnings
+            implementation("org.slf4j:slf4j-simple:2.0.13")
+
+            // Force a coroutines version compatible with Ktor 2.3.7 to avoid NoSuchMethodError at runtime
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3")
+
             implementation("org.jetbrains.exposed:exposed-core:0.57.0")
             implementation("org.jetbrains.exposed:exposed-dao:0.57.0")
             implementation("org.jetbrains.exposed:exposed-jdbc:0.57.0")
@@ -57,6 +64,17 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
         }
+    }
+}
+
+// Ensure the JVM runtime uses the intended coroutines version
+configurations.matching { it.name.contains("jvm", ignoreCase = true) }.configureEach {
+    resolutionStrategy {
+        force(
+            "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3",
+            "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3",
+            "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3"
+        )
     }
 }
 
