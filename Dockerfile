@@ -13,6 +13,8 @@ ENV PORT=8080
 WORKDIR /app
 
 COPY --from=build /app/app.jar /app/app.jar
+COPY docker-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8080
-CMD ["java","-jar","/app/app.jar"]
+ENTRYPOINT ["/app/entrypoint.sh"]
