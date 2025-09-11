@@ -133,11 +133,29 @@ jobs:
 
           echo "-- Deploy dir contents (top) --"
           ls -la "$DEPLOY_DIR" || true
-          echo "-- Search for bug_or_feature.js in deploy --"
-          find "$DEPLOY_DIR" -maxdepth 2 -type f -name "bug_or_feature.js" -print || true
-
-          if [ ! -f "$DEPLOY_DIR/bug_or_feature.js" ]; then
-            echo "ERROR: bug_or_feature.js not found in deploy folder. Failing to avoid empty deployment." >&2
+          echo "-- Search for bug_or_feature.js in build --"
+          MAIN_JS=$(find site -maxdepth 8 -type f -name "bug_or_feature.js" | head -n1 || true)
+          if [ -n "$MAIN_JS" ]; then
+            echo "Found main bundle at $MAIN_JS"
+            cp "$MAIN_JS" "$DEPLOY_DIR/bug_or_feature.js"
+            JS_DIR=$(dirname "$MAIN_JS")
+            # If a kotlin libs dir exists near the bundle, bring it along
+            if [ -d "$JS_DIR/kotlin" ]; then
+              echo "Copying kotlin libs from $JS_DIR/kotlin"
+              mkdir -p "$DEPLOY_DIR/kotlin"
+              cp -r "$JS_DIR/kotlin"/* "$DEPLOY_DIR/kotlin/"
+            else
+              # Try sibling kotlin dir one level up
+              if [ -d "$(dirname "$JS_DIR")/kotlin" ]; then
+                echo "Copying kotlin libs from $(dirname "$JS_DIR")/kotlin"
+                mkdir -p "$DEPLOY_DIR/kotlin"
+                cp -r "$(dirname "$JS_DIR")/kotlin"/* "$DEPLOY_DIR/kotlin/"
+              fi
+            fi
+          else
+            echo "ERROR: Could not locate bug_or_feature.js anywhere under site/." >&2
+            echo "Available JS candidates (first 100):" >&2
+            find site -maxdepth 8 -type f -name "*.js" | head -n 100 >&2 || true
             exit 1
           fi
 
