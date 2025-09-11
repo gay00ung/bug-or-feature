@@ -97,6 +97,7 @@ jobs:
           DEPLOY_DIR="site/build/vercel_deploy"
           DIST_DIR="site/build/distributions"
           PROD_DIR="site/build/dist/js/productionExecutable"
+          KOTLIN_WEBPACK_PROD_DIR="site/build/kotlin-webpack/js/main/productionExecutable"
           rm -rf "$DEPLOY_DIR" && mkdir -p "$DEPLOY_DIR"
 
           if [ -d "$DIST_DIR" ]; then
@@ -109,6 +110,15 @@ jobs:
             cp -r "$PROD_DIR"/* "$DEPLOY_DIR/" || true
             if [ -d "$PROD_DIR/public" ]; then
               cp -r "$PROD_DIR/public/"* "$DEPLOY_DIR/" || true
+              rm -rf "$DEPLOY_DIR/public"
+            fi
+          fi
+
+          if [ -d "$KOTLIN_WEBPACK_PROD_DIR" ]; then
+            echo "Merging kotlin-webpack productionExecutable from $KOTLIN_WEBPACK_PROD_DIR"
+            cp -r "$KOTLIN_WEBPACK_PROD_DIR"/* "$DEPLOY_DIR/" || true
+            if [ -d "$KOTLIN_WEBPACK_PROD_DIR/public" ]; then
+              cp -r "$KOTLIN_WEBPACK_PROD_DIR/public/"* "$DEPLOY_DIR/" || true
               rm -rf "$DEPLOY_DIR/public"
             fi
           fi
