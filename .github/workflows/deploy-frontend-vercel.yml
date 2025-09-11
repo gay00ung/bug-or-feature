@@ -88,6 +88,30 @@ jobs:
           # Copy root vercel.json, replacing placeholder with the actual Railway URL
           sed "s|https://YOUR-RAILWAY-APP.up.railway.app|$RAILWAY_PUBLIC_URL|g" vercel.json > "$EXPORT_DIR/vercel.json"
 
+      - name: Assemble deploy folder if needed
+        id: assemble_deploy
+        env:
+          EXPORT_DIR: ${{ steps.resolve_export.outputs.EXPORT_DIR }}
+        run: |
+          set -e
+          DEPLOY_DIR=""
+          if echo "$EXPORT_DIR" | grep -q "site/build/dist/js/productionExecutable/public"; then
+            PROD_DIR="site/build/dist/js/productionExecutable"
+            DEPLOY_DIR="site/build/vercel_deploy"
+            rm -rf "$DEPLOY_DIR" && mkdir -p "$DEPLOY_DIR"
+            cp -r "$PROD_DIR"/* "$DEPLOY_DIR/"
+            cp -r "$PROD_DIR/public/"* "$DEPLOY_DIR/"
+            rm -rf "$DEPLOY_DIR/public"
+            # Move vercel.json if it was written into the EXPORT_DIR
+            if [ -f "$EXPORT_DIR/vercel.json" ]; then
+              cp "$EXPORT_DIR/vercel.json" "$DEPLOY_DIR/vercel.json"
+            fi
+          fi
+          if [ -n "$DEPLOY_DIR" ]; then
+            echo "Using DEPLOY_DIR=$DEPLOY_DIR"
+            echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_OUTPUT
+          fi
+
       - name: Wait for Railway (healthy)
         run: |
           URL="${RAILWAY_PUBLIC_URL%/}/prompts"
@@ -111,6 +135,10 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          cd "${{ steps.resolve_export.outputs.EXPORT_DIR }}"
+          if [ -n "${{ steps.assemble_deploy.outputs.DEPLOY_DIR }}" ]; then
+            cd "${{ steps.assemble_deploy.outputs.DEPLOY_DIR }}"
+          else
+            cd "${{ steps.resolve_export.outputs.EXPORT_DIR }}"
+          fi
           # The Vercel CLI uses VERCEL_ORG_ID and VERCEL_PROJECT_ID from env
           vercel --prod --yes --token "$VERCEL_TOKEN"
