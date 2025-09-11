@@ -44,10 +44,28 @@ jobs:
       - name: Export Kobweb site (static)
         run: ./gradlew :site:kobwebExport --no-daemon
 
-      - name: Prepare vercel.json with Railway URL
+      - name: Resolve export directory and inject vercel.json
+        id: resolve_export
         run: |
-          EXPORT_DIR="site/build/kobweb/export"
-          mkdir -p "$EXPORT_DIR"
+          # Detect Kobweb export output dir (newer vs older layouts)
+          if [ -f site/build/kobweb/export/index.html ]; then
+            EXPORT_DIR="site/build/kobweb/export"
+          elif [ -f site/.kobweb/site/index.html ]; then
+            EXPORT_DIR="site/.kobweb/site"
+          elif [ -f site/build/dist/js/productionExecutable/public/index.html ]; then
+            # Fallback to Kotlin/JS production output when kobwebExport didn't create export dir
+            EXPORT_DIR="site/build/dist/js/productionExecutable/public"
+          else
+            echo "Kobweb export directory not found." >&2
+            echo "Checked: site/build/kobweb/export and site/.kobweb/site" >&2
+            ls -la site || true
+            ls -la site/build/kobweb || true
+            ls -la site/.kobweb || true
+            ls -la site/build/dist/js/productionExecutable || true
+            exit 1
+          fi
+          echo "EXPORT_DIR=$EXPORT_DIR" >> $GITHUB_OUTPUT
+
           if [ -z "$RAILWAY_PUBLIC_URL" ]; then
             echo "Missing RAILWAY_PUBLIC_URL secret (e.g., https://YOUR-APP.up.railway.app)" >&2
             exit 1
@@ -78,6 +96,6 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          cd site/build/kobweb/export
+          cd "${{ steps.resolve_export.outputs.EXPORT_DIR }}"
           # The Vercel CLI uses VERCEL_ORG_ID and VERCEL_PROJECT_ID from env
           vercel --prod --yes --token "$VERCEL_TOKEN"
