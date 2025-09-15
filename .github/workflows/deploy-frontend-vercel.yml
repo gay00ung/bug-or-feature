@@ -186,6 +186,32 @@ jobs:
 
           echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_OUTPUT
 
+      - name: Wait Railway deployment for this commit
+        if: ${{ secrets.RAILWAY_TOKEN != '' && secrets.RAILWAY_SERVICE_ID != '' }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          echo "Waiting for Railway deployment SUCCESS for commit $GIT_SHA ..."
+          deadline=$(( $(date +%s) + 900 )) # wait up to 15 minutes
+          while [ $(date +%s) -lt $deadline ]; do
+            resp=$(curl -sS -H "Authorization: Bearer $RAILWAY_TOKEN" -H "Content-Type: application/json" \
+              -d '{"query":"query($serviceId:String!){ service(id:$serviceId){ deployments(first:50){ edges{ node{ id status meta{ commit } createdAt } } } } }","variables":{"serviceId":"'"$RAILWAY_SERVICE_ID"'"}}' \
+              https://backboard.railway.app/graphql || true)
+            ok=$(node -e "const r=JSON.parse(process.argv[1]||'{}');const edges=(r.data&&r.data.service&&r.data.service.deployments&&r.data.service.deployments.edges)||[];const nodes=edges.map(e=>e.node).filter(Boolean);const target=nodes.find(n=>String(n.meta&&n.meta.commit||'').startsWith(process.env.GIT_SHA));if(target){console.log(target.status==='SUCCESS'?'OK':target.status||'NO');}else{console.log('NO');}" "$resp")
+            if [ "$ok" = "OK" ]; then
+              echo "Railway deployment SUCCESS for commit."
+              break
+            fi
+            echo "Current status: $ok (waiting). Retrying in 10s..."
+            sleep 10
+          done
+          if [ "$ok" != "OK" ]; then
+            echo "Timed out waiting for Railway deployment SUCCESS for commit $GIT_SHA" >&2
+            exit 1
+          fi
+
       - name: Wait for Railway (healthy)
         run: |
           URL="${RAILWAY_PUBLIC_URL%/}/prompts"
