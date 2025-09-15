@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 object DatabaseFactory {
     fun init() {
         val dbPath = System.getenv("DB_PATH") ?: "prompts.db"
+        println("[DatabaseFactory] DB_PATH=$dbPath")
         Database.connect(
             url = "jdbc:sqlite:$dbPath",
             driver = "org.sqlite.JDBC"
