@@ -123,13 +123,21 @@ jobs:
 
           # 2) Merge other known outputs in case Kobweb dir missed some assets
           if [ -d "$DIST_DIR" ]; then
-            echo "Merging bundle(s) from $DIST_DIR"
-            cp -r "$DIST_DIR"/* "$DEPLOY_DIR/" || true
+            echo "Merging bundle(s) from $DIST_DIR (preserving index.html)"
+            if [ -f "$DEPLOY_DIR/index.html" ]; then
+              rsync -a --exclude 'index.html' "$DIST_DIR/" "$DEPLOY_DIR/" || true
+            else
+              cp -r "$DIST_DIR"/* "$DEPLOY_DIR/" || true
+            fi
           fi
 
           if [ -d "$PROD_DIR" ]; then
-            echo "Merging productionExecutable from $PROD_DIR"
-            cp -r "$PROD_DIR"/* "$DEPLOY_DIR/" || true
+            echo "Merging productionExecutable from $PROD_DIR (preserving index.html)"
+            if [ -f "$DEPLOY_DIR/index.html" ]; then
+              rsync -a --exclude 'index.html' "$PROD_DIR/" "$DEPLOY_DIR/" || true
+            else
+              cp -r "$PROD_DIR"/* "$DEPLOY_DIR/" || true
+            fi
             if [ -d "$PROD_DIR/public" ]; then
               cp -r "$PROD_DIR/public/"* "$DEPLOY_DIR/" || true
               rm -rf "$DEPLOY_DIR/public"
@@ -137,20 +145,29 @@ jobs:
           fi
 
           if [ -d "$KOTLIN_WEBPACK_PROD_DIR" ]; then
-            echo "Merging kotlin-webpack productionExecutable from $KOTLIN_WEBPACK_PROD_DIR"
-            cp -r "$KOTLIN_WEBPACK_PROD_DIR"/* "$DEPLOY_DIR/" || true
+            echo "Merging kotlin-webpack productionExecutable from $KOTLIN_WEBPACK_PROD_DIR (preserving index.html)"
+            if [ -f "$DEPLOY_DIR/index.html" ]; then
+              rsync -a --exclude 'index.html' "$KOTLIN_WEBPACK_PROD_DIR/" "$DEPLOY_DIR/" || true
+            else
+              cp -r "$KOTLIN_WEBPACK_PROD_DIR"/* "$DEPLOY_DIR/" || true
+            fi
             if [ -d "$KOTLIN_WEBPACK_PROD_DIR/public" ]; then
               cp -r "$KOTLIN_WEBPACK_PROD_DIR/public/"* "$DEPLOY_DIR/" || true
               rm -rf "$DEPLOY_DIR/public"
             fi
           fi
 
-          # 3) Overlay public from resolved EXPORT_DIR (processedResources or export dir)
-          echo "Overlaying public from EXPORT_DIR=$EXPORT_DIR"
-          cp -r "$EXPORT_DIR"/* "$DEPLOY_DIR/" || true
+          # 3) Overlay public assets from resolved EXPORT_DIR, but DO NOT clobber Kobweb's index.html
+          echo "Overlaying public from EXPORT_DIR=$EXPORT_DIR (preserving existing index.html)"
+          if [ -f "$DEPLOY_DIR/index.html" ]; then
+            # Copy everything except index.html so we keep Kobweb's layout that points to system/bug_or_feature.js
+            rsync -a --exclude 'index.html' "$EXPORT_DIR/" "$DEPLOY_DIR/" || true
+          else
+            cp -r "$EXPORT_DIR"/* "$DEPLOY_DIR/" || true
+          fi
 
-          # Ensure vercel.json present
-          if [ -f "$EXPORT_DIR/vercel.json" ]; then
+          # Ensure vercel.json present (keep any existing one in DEPLOY_DIR)
+          if [ -f "$EXPORT_DIR/vercel.json" ] && [ ! -f "$DEPLOY_DIR/vercel.json" ]; then
             cp "$EXPORT_DIR/vercel.json" "$DEPLOY_DIR/vercel.json"
           fi
 
