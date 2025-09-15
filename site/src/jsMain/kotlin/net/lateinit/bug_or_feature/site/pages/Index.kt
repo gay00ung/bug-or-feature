@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.varabyte.kobweb.compose.foundation.layout.Column
 import com.varabyte.kobweb.compose.foundation.layout.Row
@@ -51,6 +52,7 @@ import org.jetbrains.compose.web.dom.Option
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Select
 import org.jetbrains.compose.web.dom.Text
+import kotlinx.coroutines.launch
 
 @Page
 @Composable
@@ -60,6 +62,8 @@ fun Index() {
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("all") }
     var currentId by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         prompts = ApiClient.getPrompts() // HTTP 요청
@@ -120,8 +124,17 @@ fun Index() {
                             text = current.a,
                             selected = votes[current.id] == "a",
                             onClick = {
-                                prompts = PromptRepository.applyVote(current.id, "a", prompts)
-                                votes = votes.toMutableMap().also { it[current.id] = "a" }
+                                scope.launch {
+                                    val ok = ApiClient.vote(current.id, "a")
+                                    if (ok) {
+                                        // 서버 데이터로 동기화
+                                        prompts = ApiClient.getPrompts()
+                                        votes = votes.toMutableMap().also { it[current.id] = "a" }
+                                        errorMsg = null
+                                    } else {
+                                        errorMsg = "투표를 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
+                                    }
+                                }
                             },
                             votes = current.votes,
                             side = "a"
@@ -132,12 +145,30 @@ fun Index() {
                             text = current.b,
                             selected = votes[current.id] == "b",
                             onClick = {
-                                prompts = PromptRepository.applyVote(current.id, "b", prompts)
-                                votes = votes.toMutableMap().also { it[current.id] = "b" }
+                                scope.launch {
+                                    val ok = ApiClient.vote(current.id, "b")
+                                    if (ok) {
+                                        prompts = ApiClient.getPrompts()
+                                        votes = votes.toMutableMap().also { it[current.id] = "b" }
+                                        errorMsg = null
+                                    } else {
+                                        errorMsg = "투표를 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
+                                    }
+                                }
                             },
                             votes = current.votes,
                             side = "b"
                         )
+                        errorMsg?.let {
+                            P({
+                                style {
+                                    fontSize(12.px); property(
+                                    "color",
+                                    "var(--danger, #d00)"
+                                )
+                                }
+                            }) { Text(it) }
+                        }
                         ResultBar(current.votes)
                         Row(
                             Modifier.margin(top = 16.px).gap(8.px)
@@ -199,8 +230,16 @@ fun Index() {
                                 tags = tags.split(',').map { it.trim() }.filter { it.isNotBlank() },
                                 author = author.ifBlank { "익명" }
                             )
-                            prompts = listOf(item) + prompts
-                            window.location.hash = "#q=$id"
+                            scope.launch {
+                                val ok = ApiClient.addPrompt(item)
+                                if (ok) {
+                                    prompts = ApiClient.getPrompts()
+                                    window.location.hash = "#q=$id"
+                                    errorMsg = null
+                                } else {
+                                    errorMsg = "질문을 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
+                                }
+                            }
                         }
                         P({
                             style {

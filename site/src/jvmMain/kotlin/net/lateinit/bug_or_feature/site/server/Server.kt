@@ -18,6 +18,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import net.lateinit.bug_or_feature.site.api.RepoHolder
+import net.lateinit.bug_or_feature.shared.model.Prompt
 import java.util.UUID
 
 fun main() {
@@ -63,6 +64,12 @@ fun Application.module() {
                 call.response.headers.append(HttpHeaders.SetCookie, "uid=$uid; Max-Age=31536000; Path=/; SameSite=Lax")
             }
             call.respond(repo.getAllPrompts())
+        }
+
+        post("/prompts") {
+            val prompt = call.receive<Prompt>()
+            repo.addPrompt(prompt)
+            call.respondText("{\"ok\":true}")
         }
 
         post("/vote") {
