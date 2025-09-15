@@ -188,50 +188,42 @@ jobs:
 
           echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_OUTPUT
 
-      - name: Wait Railway deployment for this commit
-        if: ${{ env.RAILWAY_TOKEN != '' && env.RAILWAY_SERVICE_ID != '' }}
+      - name: Wait Railway commit via /health (preferred)
         env:
-          RAILWAY_TOKEN: ${{ env.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE_ID: ${{ env.RAILWAY_SERVICE_ID }}
+          URL: ${{ env.RAILWAY_PUBLIC_URL }}
           GIT_SHA: ${{ github.sha }}
         run: |
-          echo "Waiting for Railway deployment SUCCESS for commit $GIT_SHA ..."
-          deadline=$(( $(date +%s) + 900 )) # wait up to 15 minutes
-          # Try multiple known endpoints for compatibility
-          ENDPOINTS=(
-            https://backboard.railway.app/graphql
-            https://railway.app/graphql
-          )
+          set -e
+          base="${URL%/}"
+          echo "Waiting for /health to report commit $GIT_SHA ..."
+          deadline=$(( $(date +%s) + 900 )) # 15m
           while [ $(date +%s) -lt $deadline ]; do
-            ok="NO"
-            for ep in "${ENDPOINTS[@]}"; do
-              # Call GraphQL and capture HTTP status separately
-              body_file=$(mktemp)
-              code=$(curl -sS -o "$body_file" -w "%{http_code}" -H "Authorization: Bearer $RAILWAY_TOKEN" -H "Content-Type: application/json" \
-                -d '{"query":"query($serviceId:String!){ service(id:$serviceId){ deployments(first:50){ edges{ node{ id status meta{ commit } createdAt } } } } }","variables":{"serviceId":"'"$RAILWAY_SERVICE_ID"'"}}' "$ep" || true)
-              if [ "$code" != "200" ]; then
-                echo "GraphQL endpoint $ep returned $code, trying next..."
-                rm -f "$body_file"
-                continue
-              fi
-              # Parse JSON safely; if parse fails, try next endpoint
-              ok=$(node -e "try{const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));const edges=((r.data||{}).service||{}).deployments?.edges||[];const nodes=edges.map(e=>e.node).filter(Boolean);const target=nodes.find(n=>String((n.meta||{}).commit||'').startsWith(process.env.GIT_SHA));if(target){process.stdout.write(target.status==='SUCCESS'?'OK':(target.status||'NO'));}else{process.stdout.write('NO');}}catch(e){process.stdout.write('PARSE_ERROR')}" "$body_file")
+            body_file=$(mktemp)
+            code=$(curl -sS -o "$body_file" -w "%{http_code}" "$base/health" || true)
+            if [ "$code" = "200" ]; then
+              reported=$(node -e "try{const j=require('fs').readFileSync(process.argv[1],'utf8');const o=JSON.parse(j);const c=String(o.commit||'');process.stdout.write(c);}catch(e){process.stdout.write('');}" "$body_file")
               rm -f "$body_file"
-              if [ "$ok" = "OK" ] || [ "$ok" = "FAILED" ] || [ "$ok" = "ERROR" ]; then
-                break
+              if [ -n "$reported" ] && [ "$reported" != "unknown" ]; then
+                if [ "$reported" = "$GIT_SHA" ] || [[ "$reported" == ${GIT_SHA}* ]] || [[ "$GIT_SHA" == ${reported}* ]]; then
+                  echo "Matched commit via /health ($reported)."
+                  exit 0
+                fi
+                echo "Got commit=$reported (waiting for $GIT_SHA). Retrying in 10s..."
+              else
+                echo "/health has no commit info yet. Retrying in 10s..."
               fi
-            done
-            if [ "$ok" = "OK" ]; then
-              echo "Railway deployment SUCCESS for commit."
-              break
+            else
+              rm -f "$body_file"
+              if [ "$code" = "404" ] || [ "$code" = "405" ]; then
+                echo "/health not available (HTTP $code). Will rely on HTTP /prompts check in next step."
+                exit 0
+              fi
+              echo "HTTP $code from /health. Retrying in 10s..."
             fi
-            echo "Current status: $ok (waiting). Retrying in 10s..."
             sleep 10
           done
-          if [ "$ok" != "OK" ]; then
-            echo "Could not verify Railway deployment SUCCESS via GraphQL (status=$ok). Will rely on HTTP health check next."
-            # Do not fail here; fall back to the next step (HTTP /prompts check)
-          fi
+          echo "Timed out waiting for commit match via /health. Proceeding to /prompts health check."
+          exit 0
 
       - name: Wait for Railway (healthy)
         run: |

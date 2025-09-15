@@ -39,6 +39,20 @@ fun Application.module() {
     val repo = RepoHolder.repo
 
     routing {
+        // Lightweight health endpoint exposing deployed commit (if available)
+        get("/health") {
+            val commit = System.getenv("RAILWAY_GIT_COMMIT_SHA")
+                ?: System.getenv("GITHUB_SHA")
+                ?: System.getenv("COMMIT_SHA")
+                ?: "unknown"
+            val body = "{" +
+                "\"status\":\"ok\"," +
+                "\"commit\":\"$commit\"," +
+                "\"time\":${System.currentTimeMillis()}" +
+                "}"
+            call.respondText(body)
+        }
+
         get("/prompts") {
             val cookieHeader = call.request.headers[HttpHeaders.Cookie] ?: ""
             val headerUid = call.request.headers["X-UID"]
@@ -75,4 +89,3 @@ fun Application.module() {
         }
     }
 }
-
