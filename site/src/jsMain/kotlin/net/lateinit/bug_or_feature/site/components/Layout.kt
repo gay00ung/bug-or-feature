@@ -34,6 +34,7 @@ import org.jetbrains.compose.web.css.px
 import org.jetbrains.compose.web.css.width
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H1
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Text
 
@@ -104,9 +105,18 @@ fun Header(onShare: () -> Unit, onReset: () -> Unit) {
                             width(36.px); height(36.px); borderRadius(12.px); display(DisplayStyle.Grid); property(
                             "place-items",
                             "center"
-                        )
+                        ); property("overflow", "hidden")
                         }; classes("logo")
-                    }) { Text("⚖️") }
+                    }) {
+                        Img(src = "/favicon.ico", attrs = {
+                            attr("alt", "앱 로고")
+                            style {
+                                width(100.percent); height(100.percent);
+                                property("object-fit", "cover");
+                                display(DisplayStyle.Block)
+                            }
+                        })
+                    }
                     Div {
                         H1({ style { fontSize(22.px); margin(0.px) } }) { Text("개발자 지옥 밸런스게임") }
                         P({
