@@ -1,9 +1,10 @@
 {
   "rewrites": [
+    { "source": "/bug_or_feature.js", "destination": "/system/bug_or_feature.js" },
+    { "source": "/bug_or_feature.js.map", "destination": "/system/bug_or_feature.js.map" },
     {
       "source": "/api/(.*)",
       "destination": "https://YOUR-RAILWAY-APP.up.railway.app/$1"
     }
   ]
 }
-
