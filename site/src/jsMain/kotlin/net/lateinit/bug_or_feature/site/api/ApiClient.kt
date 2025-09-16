@@ -1,15 +1,21 @@
 package net.lateinit.bug_or_feature.site.api
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.js.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.*
-import net.lateinit.bug_or_feature.site.util.getOrCreateClientUid
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.js.Js
+import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
+import io.ktor.serialization.kotlinx.json.json
+import net.lateinit.bug_or_feature.shared.dto.VoteRequest
 import net.lateinit.bug_or_feature.shared.model.Prompt
+import net.lateinit.bug_or_feature.site.util.getOrCreateClientUid
 
 sealed interface VoteResult {
     data object Success : VoteResult
@@ -22,9 +28,7 @@ object ApiClient {
 
     private val client = HttpClient(Js) {
         expectSuccess = false
-        install(ContentNegotiation) {
-            json()
-        }
+        install(ContentNegotiation) { json() }
         install(DefaultRequest) {
             headers.append("X-UID", getOrCreateClientUid())
         }
@@ -45,13 +49,7 @@ object ApiClient {
     suspend fun vote(promptId: String, choice: String, overrideExisting: Boolean = false): VoteResult {
         val response = client.post("$baseUrl/vote") {
             contentType(ContentType.Application.Json)
-            setBody(
-                mapOf(
-                    "id" to promptId,
-                    "choice" to choice,
-                    "override" to overrideExisting.toString()
-                )
-            )
+            setBody(VoteRequest(id = promptId, choice = choice, overrideVote = overrideExisting))
         }
         return when (response.status) {
             HttpStatusCode.OK,

@@ -6,8 +6,8 @@ import net.lateinit.bug_or_feature.shared.model.Prompt
 import net.lateinit.bug_or_feature.shared.model.Votes
 import net.lateinit.bug_or_feature.site.db.PromptsTable
 import net.lateinit.bug_or_feature.site.db.VotesTable
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.minus
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
