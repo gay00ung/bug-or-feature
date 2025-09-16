@@ -23,7 +23,7 @@ fun vote(ctx: ApiContext) {
 
         val id = payload?.get("id")?.trim()
         val choice = payload?.get("choice")?.trim()
-        val overrideExisting = payload?.get("override")?.toBoolean() ?: false
+        val overrideExisting = payload?.containsKey("override") == true
 
         if (id.isNullOrBlank() || choice.isNullOrBlank()) {
             ctx.res.status = 400

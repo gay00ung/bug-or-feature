@@ -45,22 +45,26 @@ object ApiClient {
         return response.status.isSuccess()
     }
 
-    suspend fun vote(promptId: String, choice: String, overrideExisting: Boolean = false): VoteResult {
+    suspend fun vote(
+        promptId: String,
+        choice: String,
+        overrideExisting: Boolean = false
+    ): VoteResult {
+        val payload = buildMap {
+            put("id", promptId)
+            put("choice", choice)
+            if (overrideExisting) put("override", "true")
+        }
         val response = client.post("$baseUrl/vote") {
             contentType(ContentType.Application.Json)
-            setBody(
-                mapOf(
-                    "id" to promptId,
-                    "choice" to choice,
-                    "override" to overrideExisting.toString()
-                )
-            )
+            setBody(payload)
         }
         return when (response.status) {
             HttpStatusCode.OK,
             HttpStatusCode.Created,
             HttpStatusCode.Accepted,
             HttpStatusCode.NoContent -> VoteResult.Success
+
             HttpStatusCode.Conflict -> VoteResult.AlreadyVoted
             else -> VoteResult.Failure(response.status)
         }
