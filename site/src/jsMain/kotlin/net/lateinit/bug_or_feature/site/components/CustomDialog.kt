@@ -161,6 +161,7 @@ fun CustomDialog(
                     property("line-height", "1.5")
                     color(Color("var(--text-secondary)"))
                     margin(0.px, 0.px, 24.px, 0.px)
+                    property("white-space", "pre-line")
                     property("--text-secondary", "#6b7280")
 
                     if (isDarkMode) {

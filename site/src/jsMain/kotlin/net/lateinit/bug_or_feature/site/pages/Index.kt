@@ -10,20 +10,25 @@ import androidx.compose.runtime.setValue
 import com.varabyte.kobweb.compose.foundation.layout.Column
 import com.varabyte.kobweb.compose.foundation.layout.Row
 import com.varabyte.kobweb.compose.ui.Modifier
-import com.varabyte.kobweb.compose.ui.modifiers.classNames
 import com.varabyte.kobweb.compose.ui.modifiers.fillMaxSize
 import com.varabyte.kobweb.compose.ui.modifiers.gap
 import com.varabyte.kobweb.compose.ui.modifiers.justifyContent
 import com.varabyte.kobweb.compose.ui.modifiers.margin
 import com.varabyte.kobweb.compose.ui.modifiers.width
 import com.varabyte.kobweb.core.Page
-import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.layout.Surface
 import com.varabyte.kobweb.silk.components.text.SpanText
 import kotlinx.browser.window
+import kotlinx.coroutines.launch
+import net.lateinit.bug_or_feature.shared.model.Prompt
 import net.lateinit.bug_or_feature.site.api.ApiClient
+import net.lateinit.bug_or_feature.site.api.VoteResult
 import net.lateinit.bug_or_feature.site.components.AddForm
+import net.lateinit.bug_or_feature.site.components.ButtonStyle
 import net.lateinit.bug_or_feature.site.components.Container
+import net.lateinit.bug_or_feature.site.components.CustomDialog
+import net.lateinit.bug_or_feature.site.components.DialogButton
+import net.lateinit.bug_or_feature.site.components.DialogType
 import net.lateinit.bug_or_feature.site.components.Footer
 import net.lateinit.bug_or_feature.site.components.Header
 import net.lateinit.bug_or_feature.site.components.MainGrid
@@ -34,7 +39,6 @@ import net.lateinit.bug_or_feature.site.components.ResultBar
 import net.lateinit.bug_or_feature.site.components.SectionCard
 import net.lateinit.bug_or_feature.site.components.Spacer
 import net.lateinit.bug_or_feature.site.repository.PromptRepository
-import net.lateinit.bug_or_feature.shared.model.Prompt
 import net.lateinit.bug_or_feature.site.styles.AppStyles
 import net.lateinit.bug_or_feature.site.util.shareLink
 import net.lateinit.bug_or_feature.site.util.uid
@@ -52,7 +56,13 @@ import org.jetbrains.compose.web.dom.Option
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Select
 import org.jetbrains.compose.web.dom.Text
-import kotlinx.coroutines.launch
+
+private data class DialogConfig(
+    val title: String,
+    val message: String,
+    val type: DialogType,
+    val buttons: List<DialogButton>
+)
 
 @Page
 @Composable
@@ -64,6 +74,76 @@ fun Index() {
     var currentId by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     var errorMsg by remember { mutableStateOf<String?>(null) }
+    var dialogConfig by remember { mutableStateOf<DialogConfig?>(null) }
+    var pendingVote by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    suspend fun handleVoteResult(
+        promptId: String,
+        choice: String,
+        result: VoteResult,
+        onConflict: () -> Unit
+    ) {
+        when (result) {
+            VoteResult.Success -> {
+                prompts = ApiClient.getPrompts()
+                votes = votes.toMutableMap().also { it[promptId] = choice }
+                errorMsg = null
+                dialogConfig = null
+                pendingVote = null
+            }
+
+            VoteResult.AlreadyVoted -> onConflict()
+
+            is VoteResult.Failure -> {
+                errorMsg =
+                    "투표를 저장하지 못했어요 (${result.status.value}). 잠시 후 다시 시도해 주세요."
+                pendingVote = null
+                dialogConfig = null
+            }
+        }
+    }
+
+    fun openAlreadyVotedDialog(promptId: String, choice: String) {
+        pendingVote = promptId to choice
+        dialogConfig = DialogConfig(
+            title = "알림",
+            message = "이미 투표했습니다!\n이전 투표를 취소하고 새로 투표하시겠습니까?",
+            type = DialogType.Warning,
+            buttons = listOf(
+                DialogButton(
+                    text = "취소",
+                    onClick = {
+                        dialogConfig = null
+                        pendingVote = null
+                    },
+                    style = ButtonStyle.Secondary
+                ),
+                DialogButton(
+                    text = "투표 변경",
+                    onClick = {
+                        val (id, selectedChoice) = pendingVote ?: return@DialogButton
+                        scope.launch {
+                            val result = ApiClient.vote(id, selectedChoice, overrideExisting = true)
+                            handleVoteResult(id, selectedChoice, result) {
+                                errorMsg = "투표 변경에 실패했어요. 잠시 후 다시 시도해 주세요."
+                            }
+                        }
+                    },
+                    style = ButtonStyle.Primary
+                )
+            )
+        )
+        errorMsg = null
+    }
+
+    fun attemptVote(promptId: String, choice: String) {
+        scope.launch {
+            val result = ApiClient.vote(promptId, choice)
+            handleVoteResult(promptId, choice, result) {
+                openAlreadyVotedDialog(promptId, choice)
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         prompts = ApiClient.getPrompts() // HTTP 요청
@@ -115,6 +195,17 @@ fun Index() {
             MainGrid {
                 // Left: 현재 질문
                 SectionCard {
+                    dialogConfig?.let { config ->
+                        CustomDialog(
+                            isVisible = true,
+                            onDismiss = { dialogConfig = null },
+                            title = config.title,
+                            message = config.message,
+                            type = config.type,
+                            buttons = config.buttons
+                        )
+                    }
+
                     if (current != null) {
                         PromptHeader(current)
                         H3 { Text("if(!선택) throw new HellException();") }
@@ -124,17 +215,7 @@ fun Index() {
                             text = current.a,
                             selected = votes[current.id] == "a",
                             onClick = {
-                                scope.launch {
-                                    val ok = ApiClient.vote(current.id, "a")
-                                    if (ok) {
-                                        // 서버 데이터로 동기화
-                                        prompts = ApiClient.getPrompts()
-                                        votes = votes.toMutableMap().also { it[current.id] = "a" }
-                                        errorMsg = null
-                                    } else {
-                                        errorMsg = "투표를 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
-                                    }
-                                }
+                                attemptVote(current.id, "a")
                             },
                             votes = current.votes,
                             side = "a"
@@ -145,16 +226,7 @@ fun Index() {
                             text = current.b,
                             selected = votes[current.id] == "b",
                             onClick = {
-                                scope.launch {
-                                    val ok = ApiClient.vote(current.id, "b")
-                                    if (ok) {
-                                        prompts = ApiClient.getPrompts()
-                                        votes = votes.toMutableMap().also { it[current.id] = "b" }
-                                        errorMsg = null
-                                    } else {
-                                        errorMsg = "투표를 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
-                                    }
-                                }
+                                attemptVote(current.id, "b")
                             },
                             votes = current.votes,
                             side = "b"
