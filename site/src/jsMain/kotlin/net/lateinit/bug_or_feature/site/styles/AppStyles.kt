@@ -160,6 +160,18 @@ object AppStyles : StyleSheet() {
             property("text-align", "center")
             property("color", "var(--muted)")
         }
+        ".footer a" style {
+            property("color", "var(--accent)")
+            property("text-decoration", "none")
+        }
+        ".footer a:hover" style {
+            property("text-decoration", "underline")
+        }
+        ".footer a:focus-visible" style {
+            property("outline", "2px solid var(--accent)")
+            property("outline-offset", "2px")
+            property("border-radius", "4px")
+        }
 
         // Scrollbar styling
         "html" style {
