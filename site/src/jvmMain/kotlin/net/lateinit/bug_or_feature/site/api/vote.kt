@@ -5,11 +5,13 @@ import com.varabyte.kobweb.api.ApiContext
 import com.varabyte.kobweb.api.http.HttpMethod
 import com.varabyte.kobweb.api.http.setBodyText
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import net.lateinit.bug_or_feature.shared.dto.VoteRequest
 import java.util.UUID
-import kotlin.text.toBooleanStrictOrNull
 
 @Api
 fun vote(ctx: ApiContext) {
@@ -22,12 +24,15 @@ fun vote(ctx: ApiContext) {
     runBlocking {
         val body = ctx.req.body?.decodeToString().orEmpty()
         val payload = runCatching { Json.decodeFromString<VoteRequest>(body) }.getOrElse {
-            runCatching { Json.decodeFromString<Map<String, String>>(body) }.getOrNull()?.let { map ->
-                VoteRequest(
-                    id = map["id"].orEmpty(),
-                    choice = map["choice"].orEmpty(),
-                    overrideVote = map["override"]?.toBooleanStrictOrNull() ?: false
-                )
+            runCatching { Json.parseToJsonElement(body).jsonObject }.getOrNull()?.let { obj ->
+                val id = obj["id"]?.jsonPrimitive?.contentOrNull
+                val choice = obj["choice"]?.jsonPrimitive?.contentOrNull
+                val overrideExisting = obj["override"]?.jsonPrimitive?.booleanOrNull
+                    ?: obj["override"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()
+                    ?: false
+
+                if (id == null || choice == null) null
+                else VoteRequest(id = id, choice = choice, overrideVote = overrideExisting)
             }
         }
         val id = payload?.id
