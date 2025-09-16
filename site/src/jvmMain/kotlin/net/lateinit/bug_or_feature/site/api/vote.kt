@@ -10,7 +10,6 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import net.lateinit.bug_or_feature.shared.dto.VoteRequest
 import java.util.UUID
 
 @Api
@@ -28,21 +27,13 @@ fun vote(ctx: ApiContext) {
     }
     runBlocking {
         val body = ctx.req.body?.decodeToString().orEmpty()
-        val payload = runCatching { json.decodeFromString<VoteRequest>(body) }.getOrElse {
-            runCatching { Json.parseToJsonElement(body).jsonObject }.getOrNull()?.let { obj ->
-                val id = obj["id"]?.jsonPrimitive?.contentOrNull
-                val choice = obj["choice"]?.jsonPrimitive?.contentOrNull
-                val overrideExisting = obj["override"]?.jsonPrimitive?.booleanOrNull
-                    ?: obj["override"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()
-                    ?: false
+        val jsonObject = runCatching { json.parseToJsonElement(body).jsonObject }.getOrNull()
 
-                if (id == null || choice == null) null
-                else VoteRequest(id = id, choice = choice, overrideVote = overrideExisting)
-            }
-        }
-        val id = payload?.id?.trim()
-        val choice = payload?.choice?.trim()
-        val overrideExisting = payload?.overrideVote ?: false
+        val id = jsonObject?.get("id")?.jsonPrimitive?.contentOrNull?.trim()
+        val choice = jsonObject?.get("choice")?.jsonPrimitive?.contentOrNull?.trim()
+        val overrideExisting = jsonObject?.get("override")?.jsonPrimitive?.booleanOrNull
+            ?: jsonObject?.get("override")?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()
+            ?: false
 
         if (id.isNullOrBlank() || choice.isNullOrBlank()) {
             ctx.res.status = 400
