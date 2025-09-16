@@ -21,9 +21,14 @@ fun vote(ctx: ApiContext) {
     }
 
     val repo = RepoHolder.repo
+    val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        coerceInputValues = true
+    }
     runBlocking {
         val body = ctx.req.body?.decodeToString().orEmpty()
-        val payload = runCatching { Json.decodeFromString<VoteRequest>(body) }.getOrElse {
+        val payload = runCatching { json.decodeFromString<VoteRequest>(body) }.getOrElse {
             runCatching { Json.parseToJsonElement(body).jsonObject }.getOrNull()?.let { obj ->
                 val id = obj["id"]?.jsonPrimitive?.contentOrNull
                 val choice = obj["choice"]?.jsonPrimitive?.contentOrNull
@@ -35,8 +40,8 @@ fun vote(ctx: ApiContext) {
                 else VoteRequest(id = id, choice = choice, overrideVote = overrideExisting)
             }
         }
-        val id = payload?.id
-        val choice = payload?.choice
+        val id = payload?.id?.trim()
+        val choice = payload?.choice?.trim()
         val overrideExisting = payload?.overrideVote ?: false
 
         if (id.isNullOrBlank() || choice.isNullOrBlank()) {
