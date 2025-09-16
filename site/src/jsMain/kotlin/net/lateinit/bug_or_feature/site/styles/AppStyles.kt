@@ -143,6 +143,18 @@ object AppStyles : StyleSheet() {
             property("box-shadow", "0 8px 24px var(--accent-soft)")
         }
 
+        // 비활성화된 옵션 카드 스타일 추가
+        ".option-card.is-disabled" style {
+            property("opacity", "0.6")
+            property("cursor", "not-allowed")
+            property("pointer-events", "none")
+        }
+        ".option-card.is-disabled:hover" style {
+            property("transform", "none")
+            property("box-shadow", "none")
+            property("border-color", "var(--border)")
+        }
+
         ".list-item" style {
             property("border", "1px solid var(--border)")
             property("border-radius", "16px")

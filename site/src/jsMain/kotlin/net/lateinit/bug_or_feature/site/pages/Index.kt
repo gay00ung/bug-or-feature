@@ -77,6 +77,9 @@ fun Index() {
     var dialogConfig by remember { mutableStateOf<DialogConfig?>(null) }
     var pendingVote by remember { mutableStateOf<Pair<String, String>?>(null) }
 
+    // 투표 진행 상태 관리 추가
+    var isVoting by remember { mutableStateOf(false) }
+
     suspend fun handleVoteResult(
         promptId: String,
         choice: String,
@@ -101,6 +104,7 @@ fun Index() {
                 dialogConfig = null
             }
         }
+        isVoting = false // 투표 완료 후 상태 초기화
     }
 
     fun openAlreadyVotedDialog(promptId: String, choice: String) {
@@ -115,13 +119,17 @@ fun Index() {
                     onClick = {
                         dialogConfig = null
                         pendingVote = null
+                        isVoting = false // 취소 시에도 상태 초기화
                     },
                     style = ButtonStyle.Secondary
                 ),
                 DialogButton(
                     text = "투표 변경",
                     onClick = {
+                        if (isVoting) return@DialogButton // 이미 진행 중이면 무시
+
                         val (id, selectedChoice) = pendingVote ?: return@DialogButton
+                        isVoting = true // 투표 시작
                         scope.launch {
                             val result = ApiClient.vote(id, selectedChoice, overrideExisting = true)
                             handleVoteResult(id, selectedChoice, result) {
@@ -137,6 +145,9 @@ fun Index() {
     }
 
     fun attemptVote(promptId: String, choice: String) {
+        if (isVoting) return // 이미 투표 진행 중이면 무시
+
+        isVoting = true // 투표 시작
         scope.launch {
             val result = ApiClient.vote(promptId, choice)
             handleVoteResult(promptId, choice, result) {
@@ -218,7 +229,8 @@ fun Index() {
                                 attemptVote(current.id, "a")
                             },
                             votes = current.votes,
-                            side = "a"
+                            side = "a",
+                            isDisabled = isVoting // 투표 진행 상태 전달
                         )
                         Spacer(8)
                         OptionCard(
@@ -229,15 +241,14 @@ fun Index() {
                                 attemptVote(current.id, "b")
                             },
                             votes = current.votes,
-                            side = "b"
+                            side = "b",
+                            isDisabled = isVoting // 투표 진행 상태 전달
                         )
                         errorMsg?.let {
                             P({
                                 style {
-                                    fontSize(12.px); property(
-                                    "color",
-                                    "var(--danger, #d00)"
-                                )
+                                    fontSize(12.px)
+                                    property("color", "var(--danger, #d00)")
                                 }
                             }) { Text(it) }
                         }

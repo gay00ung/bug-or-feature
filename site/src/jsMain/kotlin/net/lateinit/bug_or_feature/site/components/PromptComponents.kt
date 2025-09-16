@@ -76,13 +76,20 @@ fun OptionCard(
     selected: Boolean,
     onClick: () -> Unit,
     votes: Votes,
-    side: String
+    side: String,
+    isDisabled: Boolean = false // 비활성화 상태 추가
 ) {
     val total = votes.a + votes.b
     val count = if (side == "a") votes.a else votes.b
     val ratio = if (total > 0) (count * 100) / total else 0
     Div({
-        classes("option-card"); if (selected) classes("is-selected"); onClick { onClick() }
+        classes("option-card")
+        if (selected) classes("is-selected")
+        if (isDisabled) classes("is-disabled") // 비활성화 클래스 추가
+
+        onClick {
+            if (!isDisabled) onClick() // 비활성화된 경우 클릭 무시
+        }
     }) {
         Div({ style { textAlign("left"); width(100.percent) } }) {
             Row(Modifier.gap(8.px).margin(bottom = 4.px).alignItems(AlignItems.Center)) {
