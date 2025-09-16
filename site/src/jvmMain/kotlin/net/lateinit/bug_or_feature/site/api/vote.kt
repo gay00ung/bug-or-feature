@@ -5,9 +5,11 @@ import com.varabyte.kobweb.api.ApiContext
 import com.varabyte.kobweb.api.http.HttpMethod
 import com.varabyte.kobweb.api.http.setBodyText
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import net.lateinit.bug_or_feature.shared.dto.VoteRequest
 import java.util.UUID
+import kotlin.text.toBooleanStrictOrNull
 
 @Api
 fun vote(ctx: ApiContext) {
@@ -19,7 +21,15 @@ fun vote(ctx: ApiContext) {
     val repo = RepoHolder.repo
     runBlocking {
         val body = ctx.req.body?.decodeToString().orEmpty()
-        val payload = runCatching { Json.decodeFromString<VoteRequest>(body) }.getOrNull()
+        val payload = runCatching { Json.decodeFromString<VoteRequest>(body) }.getOrElse {
+            runCatching { Json.decodeFromString<Map<String, String>>(body) }.getOrNull()?.let { map ->
+                VoteRequest(
+                    id = map["id"].orEmpty(),
+                    choice = map["choice"].orEmpty(),
+                    overrideVote = map["override"]?.toBooleanStrictOrNull() ?: false
+                )
+            }
+        }
         val id = payload?.id
         val choice = payload?.choice
         val overrideExisting = payload?.overrideVote ?: false
@@ -57,4 +67,3 @@ fun vote(ctx: ApiContext) {
         }
     }
 }
-
