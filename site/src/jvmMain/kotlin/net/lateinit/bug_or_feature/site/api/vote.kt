@@ -5,7 +5,6 @@ import com.varabyte.kobweb.api.ApiContext
 import com.varabyte.kobweb.api.http.HttpMethod
 import com.varabyte.kobweb.api.http.setBodyText
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import net.lateinit.bug_or_feature.shared.dto.VoteRequest
 import java.util.UUID
@@ -31,19 +30,25 @@ fun vote(ctx: ApiContext) {
             return@runBlocking
         }
 
+        val promptId = id
+        val selectedChoice = choice
+
         val cookieHeader = ctx.req.headers["Cookie"].orEmpty()
         val headerUid = ctx.req.headers["X-UID"]
         val uidFromCookie = cookieHeader.toString().split(";")
             .map { it.trim() }
             .firstOrNull { it.startsWith("uid=") }
             ?.substringAfter("uid=")
-        val uid = uidFromCookie ?: headerUid ?: UUID.randomUUID().toString()
+        val uid = (uidFromCookie ?: headerUid)?.let { candidate ->
+            val candidateStr = candidate.toString()
+            candidateStr.ifBlank { null }
+        } ?: UUID.randomUUID().toString()
         if (uidFromCookie == null) {
             ctx.res.headers["Set-Cookie"] =
                 "uid=$uid; Max-Age=31536000; Path=/; SameSite=Lax"
         }
 
-        val saved = repo.vote(id, choice, uid.toString(), overrideExisting)
+        val saved = repo.vote(promptId, selectedChoice, uid, overrideExisting)
         if (saved) {
             ctx.res.setBodyText("{\"ok\":true}")
         } else {
