@@ -13,7 +13,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
-import net.lateinit.bug_or_feature.shared.dto.VoteRequest
 import net.lateinit.bug_or_feature.shared.model.Prompt
 import net.lateinit.bug_or_feature.site.util.getOrCreateClientUid
 
@@ -49,7 +48,13 @@ object ApiClient {
     suspend fun vote(promptId: String, choice: String, overrideExisting: Boolean = false): VoteResult {
         val response = client.post("$baseUrl/vote") {
             contentType(ContentType.Application.Json)
-            setBody(VoteRequest(id = promptId, choice = choice, overrideVote = overrideExisting))
+            setBody(
+                mapOf(
+                    "id" to promptId,
+                    "choice" to choice,
+                    "override" to overrideExisting.toString()
+                )
+            )
         }
         return when (response.status) {
             HttpStatusCode.OK,
