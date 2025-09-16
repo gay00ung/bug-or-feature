@@ -11,6 +11,12 @@ import io.ktor.client.plugins.*
 import net.lateinit.bug_or_feature.site.util.getOrCreateClientUid
 import net.lateinit.bug_or_feature.shared.model.Prompt
 
+sealed interface VoteResult {
+    data object Success : VoteResult
+    data object AlreadyVoted : VoteResult
+    data class Failure(val status: HttpStatusCode) : VoteResult
+}
+
 object ApiClient {
     private const val baseUrl = "/api"
 
@@ -36,11 +42,24 @@ object ApiClient {
         return response.status.isSuccess()
     }
 
-    suspend fun vote(promptId: String, choice: String): Boolean {
+    suspend fun vote(promptId: String, choice: String, overrideExisting: Boolean = false): VoteResult {
         val response = client.post("$baseUrl/vote") {
             contentType(ContentType.Application.Json)
-            setBody(mapOf("id" to promptId, "choice" to choice))
+            setBody(
+                mapOf(
+                    "id" to promptId,
+                    "choice" to choice,
+                    "override" to overrideExisting.toString()
+                )
+            )
         }
-        return response.status.isSuccess()
+        return when (response.status) {
+            HttpStatusCode.OK,
+            HttpStatusCode.Created,
+            HttpStatusCode.Accepted,
+            HttpStatusCode.NoContent -> VoteResult.Success
+            HttpStatusCode.Conflict -> VoteResult.AlreadyVoted
+            else -> VoteResult.Failure(response.status)
+        }
     }
 }

@@ -7,6 +7,7 @@ import com.varabyte.kobweb.api.http.setBodyText
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import java.util.UUID
+import kotlin.text.toBooleanStrictOrNull
 
 @Api
 fun vote(ctx: ApiContext) {
@@ -19,6 +20,7 @@ fun vote(ctx: ApiContext) {
         val payload = Json.decodeFromString<Map<String, String>>(body)
         val id = payload["id"]
         val choice = payload["choice"]
+        val overrideExisting = payload["override"]?.toBooleanStrictOrNull() ?: false
         if (id.isNullOrBlank() || choice.isNullOrBlank()) {
             ctx.res.status = 400
             ctx.res.setBodyText("{\"ok\":false}")
@@ -35,7 +37,7 @@ fun vote(ctx: ApiContext) {
                     "uid=$uid; Max-Age=31536000; Path=/; SameSite=Lax"
             }
 
-            val ok = repo.vote(id, choice, uid as String)
+            val ok = repo.vote(id, choice, uid as String, overrideExisting)
             if (ok) {
                 ctx.res.setBodyText("{\"ok\":true}")
             } else {

@@ -14,6 +14,7 @@ import com.varabyte.kobweb.compose.ui.modifiers.gap
 import com.varabyte.kobweb.compose.ui.modifiers.justifyContent
 import com.varabyte.kobweb.compose.ui.modifiers.padding
 import com.varabyte.kobweb.silk.components.forms.Button
+import com.varabyte.kobweb.silk.components.icons.fa.FaToggleOn
 import com.varabyte.kobweb.silk.components.text.SpanText
 import kotlinx.browser.document
 import kotlinx.browser.window
@@ -64,6 +65,8 @@ fun Container(content: @Composable () -> Unit) {
 fun Header(onShare: () -> Unit, onReset: () -> Unit) {
     Div({ classes("header") }) {
         var theme by remember { mutableStateOf<String?>(null) }
+        var systemTheme by remember { mutableStateOf("light") }
+
         fun applyTheme(t: String?) {
             if (t == null) {
                 window.localStorage.removeItem("theme")
@@ -73,11 +76,24 @@ fun Header(onShare: () -> Unit, onReset: () -> Unit) {
                 document.documentElement?.setAttribute("data-theme", t)
             }
         }
+
+        // 시스템 테마 감지
         LaunchedEffect(Unit) {
+            // 초기 시스템 테마 감지
+            val mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+            systemTheme = if (mediaQuery.matches) "dark" else "light"
+
+            // 시스템 테마 변경 감지 리스너
+            val listener = { event: dynamic ->
+                systemTheme = if (event.matches as Boolean) "dark" else "light"
+            }
+            mediaQuery.addEventListener("change", listener)
+
             val saved = window.localStorage.getItem("theme")
             theme = saved
             applyTheme(saved)
         }
+
         fun toggleTheme() {
             val next = when (theme) {
                 "dark" -> "light"
@@ -87,6 +103,10 @@ fun Header(onShare: () -> Unit, onReset: () -> Unit) {
             theme = next
             applyTheme(next)
         }
+
+        // 현재 활성 테마 계산 (시스템 테마 고려)
+        val activeTheme = theme ?: systemTheme
+
         Div({
             style {
                 maxWidth(1200.px); property("margin-left", "auto"); property(
@@ -133,16 +153,112 @@ fun Header(onShare: () -> Unit, onReset: () -> Unit) {
 //            임시 주석 처리
 //            Button(onClick = { onShare() }, modifier = Modifier.classNames("btn", "btn-primary")) { SpanText("현재 질문 공유") }
 //            Button(onClick = { onReset() }, modifier = Modifier.classNames("btn", "btn-ghost")) { SpanText("랜덤/최신 보기") }
-                    Button(
-                        onClick = { toggleTheme() },
-                        modifier = Modifier.classNames("btn", "btn-ghost")
-                    ) {
-                        val label = when (theme) {
-                            "dark" -> "☀️ 라이트"
-                            "light" -> "🖥 자동"
-                            else -> "🌙 다크"
+
+                    // 테마 토글 버튼
+                    Div({
+                        style {
+                            display(DisplayStyle.Flex)
+                            alignItems(AlignItems.Center)
+                            gap(8.px)
+                            padding(8.px, 12.px)
+                            borderRadius(12.px)
+                            property("background", "var(--card-bg, rgba(255, 255, 255, 0.1))")
+                            property("backdrop-filter", "blur(10px)")
+                            property("border", "1px solid var(--border, rgba(255, 255, 255, 0.2))")
+                            property("cursor", "pointer")
+                            property("transition", "all 0.3s ease")
+                            property("user-select", "none")
                         }
-                        SpanText(label)
+                        onClick { toggleTheme() }
+                    }) {
+                        // 현재 테마 아이콘 (실제 활성 테마 반영)
+                        Div({
+                            style {
+                                fontSize(16.px)
+                                property("transition", "transform 0.3s ease")
+                                property("transform", when(theme) {
+                                    "dark" -> "rotate(90deg)"
+                                    "light" -> "rotate(180deg)"
+                                    else -> "rotate(0deg)"
+                                })
+                            }
+                        }) {
+                            Text(when (theme) {
+                                "dark" -> "🌙"
+                                "light" -> "☀️"
+                                else -> "🖥️"
+                            })
+                        }
+
+                        // 토글 스위치 (실제 활성 테마 반영)
+                        Div({
+                            style {
+                                width(44.px)
+                                height(22.px)
+                                borderRadius(11.px)
+                                property("background", when(activeTheme) {
+                                    "dark" -> "linear-gradient(45deg, #1e293b, #334155)"
+                                    else -> "linear-gradient(45deg, #fbbf24, #f59e0b)"
+                                })
+                                property("position", "relative")
+                                property("transition", "background 0.3s ease")
+                                property("box-shadow", "inset 0 1px 3px rgba(0, 0, 0, 0.3)")
+                            }
+                        }) {
+                            // 토글 핸들
+                            Div({
+                                style {
+                                    width(18.px)
+                                    height(18.px)
+                                    borderRadius(9.px)
+                                    property("background", "white")
+                                    property("position", "absolute")
+                                    property("top", "2px")
+                                    property("transition", "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)")
+                                    property("transform", when(theme) {
+                                        "dark" -> "translateX(2px)"
+                                        "light" -> "translateX(24px)"
+                                        else -> "translateX(13px)"
+                                    })
+                                    property("box-shadow", "0 2px 4px rgba(0, 0, 0, 0.2)")
+                                }
+                            }) {
+                                // 핸들 내부 아이콘
+                                Div({
+                                    style {
+                                        fontSize(10.px)
+                                        property("position", "absolute")
+                                        property("top", "50%")
+                                        property("left", "50%")
+                                        property("transform", "translate(-50%, -50%)")
+                                        property("opacity", "0.7")
+                                    }
+                                }) {
+                                    Text(when (theme) {
+                                        "dark" -> "🌙"
+                                        "light" -> "☀️"
+                                        else -> "🖥️"
+                                    })
+                                }
+                            }
+                        }
+
+                        // 현재 테마 라벨
+                        Div({
+                            style {
+                                fontSize(12.px)
+                                property("color", "var(--muted)")
+                                property("font-weight", "500")
+                                property("min-width", "48px")
+                                property("text-align", "center")
+                            }
+                        }) {
+                            Text(when (theme) {
+                                "dark" -> "다크"
+                                "light" -> "라이트"
+                                else -> "시스템" + if (systemTheme == "dark") "(다크)" else "(라이트)" // 실제 시스템 테마 표시
+                            })
+                        }
                     }
                 }
             }
