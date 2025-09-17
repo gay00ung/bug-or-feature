@@ -76,6 +76,7 @@ fun Application.module() {
             val payload = call.receive<Map<String, String>>()
             val id = payload["id"]
             val choice = payload["choice"]
+            val overrideExisting = payload["override"]?.toBoolean() == true
             if (id.isNullOrBlank() || choice.isNullOrBlank()) {
                 call.respondText("{\"ok\":false}")
                 return@post
@@ -88,7 +89,7 @@ fun Application.module() {
             if (uidFromCookie == null) {
                 call.response.headers.append(HttpHeaders.SetCookie, "uid=$uid; Max-Age=31536000; Path=/; SameSite=Lax")
             }
-            val ok = repo.vote(id, choice, uid)
+            val ok = repo.vote(id, choice, uid, overrideExisting = overrideExisting)
             if (ok) call.respondText("{\"ok\":true}") else {
                 call.response.status(io.ktor.http.HttpStatusCode.Conflict)
                 call.respondText("{\"ok\":false,\"reason\":\"already_voted\"}")
