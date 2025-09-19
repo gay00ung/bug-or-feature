@@ -80,6 +80,56 @@ fun Index() {
     // 투표 진행 상태 관리 추가
     var isVoting by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        prompts = ApiClient.getPrompts() // HTTP 요청
+    }
+
+    // 해시 라우팅
+    LaunchedEffect(Unit) {
+        fun readHash(): String? = window.location.hash.removePrefix("#q=").ifBlank { null }
+        currentId = readHash()
+        window.addEventListener("hashchange", { currentId = readHash() })
+    }
+
+    // 저장 동기화
+    LaunchedEffect(prompts) { PromptRepository.savePrompts(prompts) }
+    LaunchedEffect(votes) { PromptRepository.saveVotes(votes) }
+
+    val categories = remember(prompts) {
+        buildList {
+            add("all")
+            prompts.map { it.category }.distinct().forEach { add(it) }
+        }
+    }
+
+    val filtered = remember(prompts, query, category) {
+        prompts
+            .sortedByDescending { it.createdAt }
+            .asSequence()
+            .filter { category == "all" || it.category == category }
+            .filter {
+                val q = query.trim().lowercase()
+                if (q.isBlank()) true
+                else it.a.lowercase().contains(q) || it.b.lowercase()
+                    .contains(q) || it.tags.any { t -> t.lowercase().contains(q) }
+            }
+            .toList()
+    }
+
+    fun goToNextPrompt(completedId: String) {
+        if (filtered.isEmpty()) {
+            currentId = null
+            window.location.hash = ""
+            return
+        }
+
+        val currentIndex = filtered.indexOfFirst { it.id == completedId }
+        val nextIndex = if (currentIndex == -1 || currentIndex == filtered.lastIndex) 0 else currentIndex + 1
+        val nextPrompt = filtered[nextIndex]
+        currentId = nextPrompt.id
+        window.location.hash = "#q=${nextPrompt.id}"
+    }
+
     suspend fun handleVoteResult(
         promptId: String,
         choice: String,
@@ -93,6 +143,7 @@ fun Index() {
                 errorMsg = null
                 dialogConfig = null
                 pendingVote = null
+                goToNextPrompt(promptId)
             }
 
             VoteResult.AlreadyVoted -> onConflict()
@@ -154,42 +205,6 @@ fun Index() {
                 openAlreadyVotedDialog(promptId, choice)
             }
         }
-    }
-
-    LaunchedEffect(Unit) {
-        prompts = ApiClient.getPrompts() // HTTP 요청
-    }
-
-    // 해시 라우팅
-    LaunchedEffect(Unit) {
-        fun readHash(): String? = window.location.hash.removePrefix("#q=").ifBlank { null }
-        currentId = readHash()
-        window.addEventListener("hashchange", { currentId = readHash() })
-    }
-
-    // 저장 동기화
-    LaunchedEffect(prompts) { PromptRepository.savePrompts(prompts) }
-    LaunchedEffect(votes) { PromptRepository.saveVotes(votes) }
-
-    val categories = remember(prompts) {
-        buildList {
-            add("all")
-            prompts.map { it.category }.distinct().forEach { add(it) }
-        }
-    }
-
-    val filtered = remember(prompts, query, category) {
-        prompts
-            .sortedByDescending { it.createdAt }
-            .asSequence()
-            .filter { category == "all" || it.category == category }
-            .filter {
-                val q = query.trim().lowercase()
-                if (q.isBlank()) true
-                else it.a.lowercase().contains(q) || it.b.lowercase()
-                    .contains(q) || it.tags.any { t -> t.lowercase().contains(q) }
-            }
-            .toList()
     }
 
     val current = remember(filtered, currentId) {
